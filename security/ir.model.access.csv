@@ -1,5 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_quality_check_custom,quality.check.custom,model_quality_check_custom,mrp.group_mrp_user,1,1,1,1
-access_quality_alert_custom,quality.alert.custom,model_quality_alert_custom,mrp.group_mrp_user,1,1,1,1
-access_quality_team_custom,quality.team.custom,model_quality_team_custom,mrp.group_mrp_user,1,1,1,1
-access_quality_rejection_reason,quality.rejection.reason,model_quality_rejection_reason,mrp.group_mrp_user,1,1,1,1
