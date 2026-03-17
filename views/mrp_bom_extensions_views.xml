@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit Work Center Form -->
+    <record id="mrp_workcenter_view_form_inherit_costs" model="ir.ui.view">
+        <field name="name">mrp.workcenter.form.inherit.costs</field>
+        <field name="model">mrp.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+        <field name="arch" type="xml">
+            <field name="costs_hour" position="after">
+                <field name="costs_hour_labour" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+            </field>
+        </field>
+    </record>
+
+    <!-- Inherit BoM Form -->
+    <record id="mrp_bom_form_view_inherit_costs" model="ir.ui.view">
+        <field name="name">mrp.bom.form.inherit.costs</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.mrp_bom_form_view"/>
+        <field name="arch" type="xml">
+            <sheet>
+                <div class="oe_title" position="after">
+                    <group name="bom_costs" string="BoM Cost Analysis">
+                        <group>
+                            <field name="material_cost" widget="monetary"/>
+                            <field name="workcenter_cost" widget="monetary"/>
+                        </group>
+                        <group>
+                            <field name="labour_cost" widget="monetary"/>
+                        </group>
+                    </group>
+                </div>
+            </sheet>
+        </field>
+    </record>
+</odoo>
