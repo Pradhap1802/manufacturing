@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mrp_create_bom_wizard,mrp.create.bom.wizard,model_mrp_create_bom_wizard,mrp.group_mrp_user,1,1,1,1
+access_mrp_create_bom_wizard_line,mrp.create.bom.wizard.line,model_mrp_create_bom_wizard_line,mrp.group_mrp_user,1,1,1,1
+access_mrp_create_bom_wizard_operation,mrp.create.bom.wizard.operation,model_mrp_create_bom_wizard_operation,mrp.group_mrp_user,1,1,1,1
+access_mrp_workcenter_employee,mrp.workcenter.employee,model_mrp_workcenter_employee,mrp.group_mrp_user,1,1,1,1
+access_mrp_shop_floor_login,mrp.shop.floor.login,model_mrp_shop_floor_login,mrp.group_mrp_user,1,1,1,1
+access_mrp_quality_alert,mrp.quality.alert,model_mrp_quality_alert,mrp.group_mrp_user,1,1,1,1

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="mrp_workorder_view_kanban_shop_floor" model="ir.ui.view">
+            <field name="name">mrp.workorder.kanban.shop.floor</field>
+            <field name="model">mrp.workorder</field>
+            <field name="arch" type="xml">
+                <kanban class="o_kanban_mobile" create="0" sample="1">
+                    <field name="name"/>
+                    <field name="workcenter_id"/>
+                    <field name="state"/>
+                    <field name="employee_id"/>
+                    <field name="product_id"/>
+                    <field name="qty_producing"/>
+                    <field name="qty_production"/>
+                    <templates>
+                        <t t-name="card">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title"><field name="name"/></strong>
+                                </div>
+                                <div class="oe_kanban_top_right">
+                                    <field name="state" widget="label_selection" options="{'classes': {'pending': 'default', 'ready': 'success', 'progress': 'warning', 'done': 'info', 'cancel': 'danger'}}"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div><strong>Work Center: </strong><field name="workcenter_id"/></div>
+                                <div><strong>Employee: </strong><field name="employee_id"/></div>
+                                <div class="mt-2">
+                                    <strong>Quantity: </strong> <field name="qty_producing"/> / <field name="qty_production"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_bottom mt-2">
+                                <div class="oe_kanban_bottom_left">
+                                    <button name="action_shop_floor_maintenance" type="object" class="btn btn-secondary btn-sm me-1" icon="fa-wrench" title="Maintenance"/>
+                                    <button name="action_shop_floor_quality_alert" type="object" class="btn btn-warning btn-sm" icon="fa-exclamation-triangle" title="Quality Alert"/>
+                                </div>
+                                <div class="oe_kanban_bottom_right d-flex gap-1">
+                                    <button name="button_start" type="object" invisible="state != 'ready'" class="btn btn-primary btn-sm">Start</button>
+                                    <button name="button_pending" type="object" invisible="state != 'progress'" class="btn btn-secondary btn-sm">Pause</button>
+                                    <button name="button_finish" type="object" invisible="state != 'progress'" class="btn btn-success btn-sm">Finish</button>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+    
+        <record id="action_mrp_shop_floor" model="ir.actions.act_window">
+            <field name="name">Shop Floor</field>
+            <field name="res_model">mrp.workorder</field>
+            <field name="view_mode">kanban,list,form</field>
+            <field name="domain">[('state', 'in', ('ready', 'progress'))]</field>
+            <field name="context">{'search_default_ready': 1}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">No work orders to process.</p>
+                <p>Work orders will appear here when they are ready to be started.</p>
+            </field>
+        </record>
+    
+        <record id="view_mrp_shop_floor_login_form" model="ir.ui.view">
+            <field name="name">mrp.shop.floor.login.form</field>
+            <field name="model">mrp.shop.floor.login</field>
+            <field name="arch" type="xml">
+                <form string="Shop Floor Login">
+                    <div class="text-center w-100 mb-3">
+                        <h3>Please enter your PIN to continue</h3>
+                    </div>
+                    <group>
+                        <field name="pin" widget="char" placeholder="Enter PIN..."/>
+                    </group>
+                    <footer>
+                        <button name="action_login" string="Login" type="object" class="btn-primary"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+    
+        <record id="action_mrp_shop_floor_login" model="ir.actions.act_window">
+            <field name="name">Shop Floor login</field>
+            <field name="res_model">mrp.shop.floor.login</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+    
+        <menuitem id="menu_mrp_shop_floor_root" name="Shop Floor" parent="mrp.menu_mrp_root" sequence="20"/>
+        <menuitem id="menu_mrp_shop_floor" name="Operations" action="action_mrp_shop_floor_login" parent="menu_mrp_shop_floor_root" sequence="1"/>
+</odoo>

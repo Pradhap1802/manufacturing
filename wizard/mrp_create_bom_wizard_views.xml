@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mrp_create_bom_wizard_form" model="ir.ui.view">
+        <field name="name">mrp.create.bom.wizard.form</field>
+        <field name="model">mrp.create.bom.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Create BOM">
+                <group>
+                    <field name="product_tmpl_id" options="{'no_create': True}"/>
+                    <field name="product_qty"/>
+                </group>
+                <notebook>
+                    <page string="Components" name="components">
+                        <field name="line_ids">
+                            <list editable="bottom">
+                                <field name="product_tmpl_id"/>
+                                <field name="product_qty"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Operations" name="operations">
+                        <field name="operation_ids">
+                            <list editable="bottom">
+                                <field name="name"/>
+                                <field name="workcenter_id"/>
+                                <field name="time_cycle_manual"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
+                <footer>
+                    <button name="action_create_bom" string="Create BOM" type="object" class="btn-primary" data-hotkey="q"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+
+    <record id="action_mrp_create_bom_wizard" model="ir.actions.act_window">
+        <field name="name">Create BOM</field>
+        <field name="res_model">mrp.create.bom.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="context">{}</field>
+    </record>
+</odoo>

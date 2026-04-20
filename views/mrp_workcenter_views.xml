@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="mrp_workcenter_view_form_inherit" model="ir.ui.view">
+            <field name="name">mrp.workcenter.form.inherit</field>
+            <field name="model">mrp.workcenter</field>
+            <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook" position="inside">
+                    <page string="Allowed Employees" name="allowed_employees">
+                        <field name="employee_cost_ids">
+                            <list editable="bottom">
+                                <field name="employee_id"/>
+                                <field name="cost_hour"/>
+                            </list>
+                        </field>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+        <record id="mrp_routing_workcenter_form_view_inherit" model="ir.ui.view">
+            <field name="name">mrp.routing.workcenter.form.inherit</field>
+            <field name="model">mrp.routing.workcenter</field>
+            <field name="inherit_id" ref="mrp.mrp_routing_workcenter_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group[@name='description']" position="after">
+                    <group string="Allowed Employees">
+                        <field name="allowed_employee_ids" widget="many2many_tags"/>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+</odoo>
