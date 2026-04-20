@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="mrp_shop_floor_wizard_view_form" model="ir.ui.view">
+        <field name="name">mrp.shop.floor.wizard.view.form</field>
+        <field name="model">mrp.shop.floor.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Shop Floor Operations">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="workorder_id" readonly="1"/></h1>
+                        <h3><field name="product_id" readonly="1"/></h3>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="employee_id" readonly="1"/>
+                            <field name="state" widget="statusbar"/>
+                        </group>
+                        <group>
+                            <field name="qty_producing" invisible="state == 'pending'"/>
+                            <field name="scrap_qty" invisible="state != 'progress'"/>
+                            <field name="scrap_reason" invisible="state != 'progress' or scrap_qty == 0"/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_start" string="Start Work" type="object" class="btn-primary" invisible="state != 'ready'"/>
+                    <button name="action_pause" string="Hold Progress" type="object" class="btn-secondary" invisible="state != 'progress'"/>
+                    <button name="action_start" string="Continue" type="object" class="btn-primary" invisible="state != 'pending'"/>
+                    <button name="action_finish" string="Finish" type="object" class="btn-success" invisible="state != 'progress'"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

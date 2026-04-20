@@ -7,7 +7,31 @@ class MrpWorkorder(models.Model):
 
     employee_id = fields.Many2one('hr.employee', string='Employee', copy=False)
 
+    def action_open_shop_floor_wizard(self):
+        self.ensure_one()
+        return {
+            'name': _('Shop Floor Interaction'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.shop.floor.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_workorder_id': self.id,
+                'default_employee_id': self.env.context.get('authenticated_employee_id'),
+            }
+        }
+
+    def _cal_cost(self, date=False):
+        """Override to use employee-specific costs if available, mimicking Enterprise."""
+        total = 0
+        for workorder in self:
+            # Aggregate from our custom productivity timer field 'total_cost'
+            timers = workorder.time_ids.filtered(lambda t: t.date_end and (not date or t.date_end < date))
+            total += sum(timers.mapped('total_cost'))
+        return total
+
     def button_start(self):
+
         self.ensure_one()
         # If no employee is set, we use the logged-in user's employee
         if not self.employee_id:

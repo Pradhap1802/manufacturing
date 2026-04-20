@@ -6,7 +6,7 @@ class MrpShopFloorLogin(models.TransientModel):
     _name = 'mrp.shop.floor.login'
     _description = 'Shop Floor Login'
 
-    pin = fields.Char(string='Employee PIN', required=True, password=True)
+    pin = fields.Char(string='Employee PIN', required=True)
 
     def action_login(self):
         self.ensure_one()
