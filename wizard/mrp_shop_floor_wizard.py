@@ -8,14 +8,20 @@ class MrpShopFloorWizard(models.TransientModel):
     workorder_id = fields.Many2one('mrp.workorder', string='Work Order', required=True)
     production_id = fields.Many2one('mrp.production', related='workorder_id.production_id')
     product_id = fields.Many2one('product.product', related='workorder_id.product_id')
-    
+
     employee_id = fields.Many2one('hr.employee', string='Employee')
-    
+
     state = fields.Selection(related='workorder_id.state')
-    
-    qty_to_produce = fields.Float('Quantity to Produce', default=1.0)
-    qty_producing = fields.Float('Quantity Done', related='workorder_id.qty_producing', readonly=False)
-    
+
+    # Quantity fields
+    qty_producing = fields.Float('Qty Producing', related='workorder_id.qty_producing', readonly=False)
+    qty_production = fields.Float('Total Qty', related='workorder_id.qty_production')
+    qty_remaining = fields.Float('Remaining Qty', related='workorder_id.qty_remaining')
+
+    # Duration / timer
+    duration = fields.Float('Time Elapsed (min)', related='workorder_id.duration')
+
+    # Scrap
     scrap_qty = fields.Float('Scrap Quantity', default=0.0)
     scrap_reason = fields.Char('Scrap Reason')
 
@@ -31,7 +37,6 @@ class MrpShopFloorWizard(models.TransientModel):
     def action_finish(self):
         self.ensure_one()
         if self.scrap_qty > 0:
-            # Logic to create scrap record
             self.env['stock.scrap'].create({
                 'product_id': self.product_id.id,
                 'scrap_qty': self.scrap_qty,

@@ -4,7 +4,7 @@ from odoo import models, fields
 class MrpWorkcenterProductivity(models.Model):
     _inherit = 'mrp.workcenter.productivity'
 
-    employee_id = fields.Many2one('hr.employee', string='Employee')
+    employee_id = fields.Many2one('hr.employee', string='Operator')
     total_cost = fields.Float('Total Cost', compute='_compute_total_cost', store=True)
 
     def _compute_total_cost(self):

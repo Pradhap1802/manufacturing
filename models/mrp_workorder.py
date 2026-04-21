@@ -17,7 +17,39 @@ class MrpWorkorder(models.Model):
             'target': 'new',
             'context': {
                 'default_workorder_id': self.id,
-                'default_employee_id': self.env.context.get('authenticated_employee_id'),
+                'default_employee_id': self.env.context.get('authenticated_employee_id') or self.employee_id.id,
+            }
+        }
+
+    def action_open_pause_wizard(self):
+        """Open the wizard in pause context — shows timer and qty info before pausing."""
+        self.ensure_one()
+        return {
+            'name': _('Pause Work Order'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.shop.floor.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_workorder_id': self.id,
+                'default_employee_id': self.env.context.get('authenticated_employee_id') or self.employee_id.id,
+                'shop_floor_mode': 'pause',
+            }
+        }
+
+    def action_open_finish_wizard(self):
+        """Open the wizard in finish context — shows qty producing and scrap entry."""
+        self.ensure_one()
+        return {
+            'name': _('Finish Work Order'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.shop.floor.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_workorder_id': self.id,
+                'default_employee_id': self.env.context.get('authenticated_employee_id') or self.employee_id.id,
+                'shop_floor_mode': 'finish',
             }
         }
 

@@ -5,3 +5,5 @@ access_mrp_create_bom_wizard_operation,mrp.create.bom.wizard.operation,model_mrp
 access_mrp_workcenter_employee,mrp.workcenter.employee,model_mrp_workcenter_employee,mrp.group_mrp_user,1,1,1,1
 access_mrp_shop_floor_login,mrp.shop.floor.login,model_mrp_shop_floor_login,mrp.group_mrp_user,1,1,1,1
 access_mrp_quality_alert,mrp.quality.alert,model_mrp_quality_alert,mrp.group_mrp_user,1,1,1,1
+access_mrp_shop_floor_wizard,mrp.shop.floor.wizard,model_mrp_shop_floor_wizard,mrp.group_mrp_user,1,1,1,1
+access_mrp_workcenter_productivity_custom,mrp.workcenter.productivity.custom,model_mrp_workcenter_productivity,mrp.group_mrp_user,1,1,1,1
