@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_manufacturing_multi_uom" model="res.groups">
+        <field name="name">Manage Multi UOM</field>
+        <field name="comment">The user will have access to the secondary UoM field on products.</field>
+    </record>
+</odoo>
