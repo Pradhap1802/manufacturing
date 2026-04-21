@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <form string="Shop Floor Operations">
                 <sheet>
+                    <field name="wizard_mode" invisible="1"/>
                     <div class="oe_title">
                         <h1><field name="workorder_id" readonly="1"/></h1>
                         <h3 class="text-muted"><field name="product_id" readonly="1"/></h3>
@@ -34,8 +35,8 @@
                         </group>
                     </group>
 
-                    <!-- Scrap section, visible only on finish -->
-                    <group string="Scrap" invisible="state != 'progress'">
+                    <!-- Scrap section, visible only on finish or manage -->
+                    <group string="Scrap" invisible="wizard_mode not in ('finish', 'manage')">
                         <field name="scrap_qty"/>
                         <field name="scrap_reason" invisible="scrap_qty == 0"/>
                     </group>
@@ -44,15 +45,23 @@
                     <button name="action_start" string="Start Work"
                             type="object" class="btn-primary"
                             invisible="state != 'ready'"/>
+                    
                     <button name="action_pause" string="Hold Progress"
                             type="object" class="btn-warning"
-                            invisible="state != 'progress'"/>
-                    <button name="action_start" string="Continue"
+                            invisible="wizard_mode != 'pause'"/>
+                            
+                    <button name="action_start" string="Resume Timer &#38; Save Qty"
                             type="object" class="btn-primary"
-                            invisible="state != 'pending'"/>
+                            invisible="wizard_mode != 'resume'"/>
+                            
                     <button name="action_finish" string="Finish Work Order"
                             type="object" class="btn-success"
-                            invisible="state != 'progress'"/>
+                            invisible="wizard_mode != 'finish'"/>
+                            
+                    <button name="action_start" string="Save Changes"
+                            type="object" class="btn-primary"
+                            invisible="wizard_mode != 'manage'"/>
+                            
                     <button string="Close" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>

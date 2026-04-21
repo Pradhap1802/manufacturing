@@ -30,7 +30,7 @@
         <field name="model">mrp.workorder</field>
         <field name="arch" type="xml">
             <kanban class="o_kanban_mobile" create="0" sample="1"
-                    default_order="state desc" can_open="0">
+                    default_order="state desc" can_open="0" js_class="mrp_shop_floor_kanban">
                 <field name="name"/>
                 <field name="workcenter_id"/>
                 <field name="state"/>
@@ -48,8 +48,10 @@
                             <!-- Header row -->
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <strong class="fs-6"><field name="name"/></strong>
-                                <field name="state" widget="label_selection"
-                                       options="{'classes': {'pending': 'default', 'ready': 'success', 'progress': 'warning', 'done': 'info', 'cancel': 'danger'}}"/>
+                                <div>
+                                    <field name="state" widget="label_selection"
+                                           options="{'classes': {'pending': 'default', 'ready': 'success', 'progress': 'warning', 'done': 'info', 'cancel': 'danger'}}"/>
+                                </div>
                             </div>
 
                             <!-- Info rows -->
@@ -109,8 +111,8 @@
                                         invisible="state != 'progress' or not is_user_working">
                                     <i class="fa fa-pause me-1"/>Pause
                                 </button>
-                                <!-- Continue: directly resumes timer -->
-                                <button name="button_start" type="object"
+                                <!-- Continue: opens wizard to update qty before resuming timer -->
+                                <button name="action_open_resume_wizard" type="object"
                                         class="btn btn-primary btn-sm me-1"
                                         invisible="state != 'progress' or is_user_working">
                                     <i class="fa fa-play me-1"/>Continue
@@ -148,7 +150,7 @@
         <field name="search_view_id" ref="mrp_workorder_view_search_shop_floor"/>
         <field name="domain">[('state', 'in', ('ready', 'progress', 'pending'))]</field>
         <field name="context">{'search_default_ready': 1}</field>
-        <field name="target">main</field>
+        <field name="target">fullscreen</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">No work orders to process.</p>
             <p>Work orders will appear here when they are ready to be started.</p>

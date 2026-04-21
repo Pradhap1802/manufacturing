@@ -14,6 +14,12 @@
         'views/mrp_quality_views.xml',
         'views/mrp_production_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'manufacturing/static/src/xml/shop_floor_kanban.xml',
+            'manufacturing/static/src/js/shop_floor_kanban.js',
+        ],
+    },
     'installable': True,
     'application': True,
     'license': 'LGPL-3',

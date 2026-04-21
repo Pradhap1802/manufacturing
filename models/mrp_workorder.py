@@ -33,7 +33,23 @@ class MrpWorkorder(models.Model):
             'context': {
                 'default_workorder_id': self.id,
                 'default_employee_id': self.env.context.get('authenticated_employee_id') or self.employee_id.id,
-                'shop_floor_mode': 'pause',
+                'default_wizard_mode': 'pause',
+            }
+        }
+
+    def action_open_resume_wizard(self):
+        """Open the wizard to update qty_producing before resuming."""
+        self.ensure_one()
+        return {
+            'name': _('Resume Work Order'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.shop.floor.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_workorder_id': self.id,
+                'default_employee_id': self.env.context.get('authenticated_employee_id') or self.employee_id.id,
+                'default_wizard_mode': 'resume',
             }
         }
 
@@ -49,9 +65,18 @@ class MrpWorkorder(models.Model):
             'context': {
                 'default_workorder_id': self.id,
                 'default_employee_id': self.env.context.get('authenticated_employee_id') or self.employee_id.id,
-                'shop_floor_mode': 'finish',
+                'default_wizard_mode': 'finish',
             }
         }
+
+    def action_exit_shop_floor(self):
+        """Exit the Shop Floor fullscreen mode and return to Manufacturing Orders."""
+        self.ensure_one()
+        action = self.env["ir.actions.actions"]._for_xml_id("mrp.mrp_production_action")
+        # Removing fullscreen target just in case, ensuring normal UI loads
+        action['target'] = 'current'
+        return action
+
 
     def _cal_cost(self, date=False):
         """Override to use employee-specific costs if available, mimicking Enterprise."""
