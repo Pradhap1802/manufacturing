@@ -22,6 +22,10 @@
         'web.assets_backend': [
             'manufacturing/static/src/xml/shop_floor_kanban.xml',
             'manufacturing/static/src/js/shop_floor_kanban.js',
+            'manufacturing/static/src/css/shop_floor_standalone.css',
+        ],
+        'web.assets_frontend': [
+            'manufacturing/static/src/xml/scoped_app_templates.xml',
         ],
     },
     'installable': True,

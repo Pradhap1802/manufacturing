@@ -7,7 +7,15 @@ class MrpShopFloorLogin(models.TransientModel):
     _description = 'Shop Floor Login'
 
     employee_id = fields.Many2one('hr.employee', string='Operator', required=True)
+    employee_ids = fields.Many2many('hr.employee', string='Available Operators', compute='_compute_employee_ids')
     pin = fields.Char(string='Employee PIN', required=True)
+
+    @api.depends('pin')
+    def _compute_employee_ids(self):
+        # Provide all internal employees for the selection board
+        employees = self.env['hr.employee'].search([('active', '=', True)])
+        for record in self:
+            record.employee_ids = [(6, 0, employees.ids)]
 
     def action_login(self):
         self.ensure_one()
@@ -46,4 +54,5 @@ class MrpShopFloorLogin(models.TransientModel):
             'search_default_employee_id': employee.id,
         }
         action['name'] = _("Shop Floor - %s") % employee.name
+        action['target'] = 'fullscreen'
         return action

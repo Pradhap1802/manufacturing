@@ -1,0 +1,22 @@
+/* Hide Odoo navigation when running as a standalone Shop Floor app */
+@media (display-mode: standalone) {
+    .o_navbar, 
+    .o_main_navbar, 
+    header.o_navbar,
+    .o_control_panel_breadcrumbs,
+    .o_install_shop_floor_btn {
+        display: none !important;
+    }
+    
+    .o_action_manager {
+        top: 0 !important;
+        height: 100vh !important;
+    }
+}
+
+/* Also hide if the URL contains 'scoped_app' hint */
+body.o_scoped_app .o_navbar,
+body.o_scoped_app .o_main_navbar,
+body.o_scoped_app .o_shop_floor_exit_btn {
+    display: none !important;
+}

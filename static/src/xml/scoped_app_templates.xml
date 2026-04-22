@@ -1,0 +1,7 @@
+<templates xml:space="preserve">
+    <t t-name="manufacturing.InstallScopedApp" t-inherit="web.InstallScopedApp" t-inherit-mode="extension">
+        <xpath expr="//a[@href='https://odoo.com']" position="replace">
+            <span class="text-muted">Smart Manufacturing</span>
+        </xpath>
+    </t>
+</templates>

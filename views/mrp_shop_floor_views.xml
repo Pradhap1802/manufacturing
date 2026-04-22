@@ -146,8 +146,7 @@
         <field name="name">Shop Floor</field>
         <field name="group_ids" eval="[(4, ref('mrp.group_mrp_user'))]"/>
         <field name="res_model">mrp.workorder</field>
-        <field name="view_mode">kanban,list</field>
-        <field name="view_id" ref="mrp_workorder_view_kanban_shop_floor"/>
+        <field name="view_mode">kanban</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'kanban', 'view_id': ref('mrp_workorder_view_kanban_shop_floor')}),
@@ -157,8 +156,14 @@
         <field name="context">{'search_default_ready': 1}</field>
         <field name="target">fullscreen</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">No work orders to process.</p>
-            <p>Work orders will appear here when they are ready to be started.</p>
+            <div class="o_nocontent_help">
+                <p class="o_view_nocontent_smiling_face">
+                    Shop Floor
+                </p>
+                <p>
+                    Work orders will appear here when they are ready to be started.
+                </p>
+            </div>
         </field>
     </record>
 
@@ -167,13 +172,27 @@
         <field name="name">mrp.shop.floor.login.form</field>
         <field name="model">mrp.shop.floor.login</field>
         <field name="arch" type="xml">
-            <form string="Shop Floor Login">
-                <group>
-                    <field name="employee_id" options="{'no_create': True, 'no_open': True}"/>
-                    <field name="pin" password="1" placeholder="Enter PIN..."/>
-                </group>
+            <form string="Shop Floor Authentication">
+                <sheet>
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold">Operator Terminal</h2>
+                        <p class="text-muted">Select your name and enter your security PIN</p>
+                    </div>
+                    <group>
+                        <field name="employee_id" 
+                               string="Operator" 
+                               options="{'no_create': True, 'no_open': True}"
+                               widget="res_partner_many2one"
+                               placeholder="Search your name..."/>
+                        <field name="pin" 
+                               password="1" 
+                               placeholder="****"
+                               invisible="not employee_id"
+                               class="text-center h3"/>
+                    </group>
+                </sheet>
                 <footer>
-                    <button name="action_login" string="Login" type="object" class="btn-primary"/>
+                    <button name="action_login" string="Enter Shop Floor" type="object" class="btn-primary" invisible="not employee_id"/>
                     <button string="Cancel" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
