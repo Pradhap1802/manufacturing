@@ -73,19 +73,21 @@
                             </div>
 
                             <!-- Quantity progress — Clickable to open update wizard -->
-                            <div class="d-flex justify-content-between align-items-center mt-2 mb-1 small"
-                                 name="action_open_resume_wizard" type="object" role="button" title="Click to update quantity">
-                                <span>
-                                    <i class="fa fa-check-circle me-1 text-success" title="Producing"/>
-                                    <strong><field name="qty_producing"/></strong>
-                                    <span class="text-muted"> / </span>
-                                    <field name="qty_production"/>
-                                </span>
-                                <span class="text-muted" invisible="qty_remaining == 0">
-                                    <i class="fa fa-hourglass-half me-1"/>
-                                    Rem: <field name="qty_remaining"/>
-                                </span>
-                            </div>
+                            <button class="o_kanban_action p-0 w-100 border-0 bg-transparent text-start"
+                                    name="action_open_resume_wizard" type="object" role="button" title="Click to update quantity">
+                                <div class="d-flex justify-content-between align-items-center mt-2 mb-1 small text-dark">
+                                    <span>
+                                        <i class="fa fa-check-circle me-1 text-success" title="Producing"/>
+                                        <strong><field name="qty_producing"/></strong>
+                                        <span class="text-muted"> / </span>
+                                        <field name="qty_production"/>
+                                    </span>
+                                    <span class="text-muted" invisible="qty_remaining == 0">
+                                        <i class="fa fa-hourglass-half me-1"/>
+                                        Rem: <field name="qty_remaining"/>
+                                    </span>
+                                </div>
+                            </button>
 
                             <!-- Live Timer — shown only while running -->
                             <div invisible="state != 'progress'"

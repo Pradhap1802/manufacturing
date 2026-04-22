@@ -5,8 +5,12 @@
         <field name="model">mrp.shop.floor.wizard</field>
         <field name="arch" type="xml">
             <form string="Shop Floor Operations">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="ready,progress,pending,done"/>
+                </header>
                 <sheet>
                     <field name="wizard_mode" invisible="1"/>
+                    <field name="scrap_allowed_product_ids" invisible="1"/>
                     <div class="oe_title">
                         <h1><field name="workorder_id" readonly="1"/></h1>
                         <h3 class="text-muted"><field name="product_id" readonly="1"/></h3>
@@ -14,7 +18,8 @@
 
                     <!-- Timer banner, shown only when work is in progress -->
                     <div invisible="state != 'progress'"
-                         class="alert alert-warning d-flex align-items-center justify-content-between p-2 mb-3">
+                         class="alert alert-warning d-flex align-items-center justify-content-between p-2 mb-3"
+                         role="alert">
                         <span class="fw-bold">
                             <i class="fa fa-clock-o me-2"/>Time Consumed:
                         </span>
@@ -30,15 +35,35 @@
                             <field name="qty_production" string="Total to Produce" readonly="1"/>
                         </group>
                         <group string="Work Order Info">
-                            <field name="employee_id"/>
-                            <field name="state" widget="statusbar" statusbar_visible="ready,progress,pending,done"/>
+                            <field name="employee_id" readonly="1"/>
                         </group>
                     </group>
 
-                    <!-- Scrap section, visible only on finish or manage -->
-                    <group string="Scrap" invisible="wizard_mode not in ('finish', 'manage')">
-                        <field name="scrap_qty"/>
-                        <field name="scrap_reason" invisible="scrap_qty == 0"/>
+                    <!-- Scrap section, restricted to Raw Materials only -->
+                    <group string="Raw Material Scrap Entry">
+                        <group>
+                            <field name="scrap_product_id" 
+                                   string="Select Raw Material"
+                                   domain="[('id', 'in', scrap_allowed_product_ids)]"
+                                   placeholder="Search BOM Component..."
+                                   options="{'no_create': True, 'no_open': True}"/>
+                        </group>
+                        <group>
+                            <field name="scrap_qty" string="Quantity to Scrap"/>
+                            <field name="scrap_reason" invisible="scrap_qty == 0" placeholder="e.g. Scratched, broken..."/>
+                        </group>
+                    </group>
+
+                    <!-- Materials List (Read-only Reference) -->
+                    <group string="Materials Reference">
+                        <field name="component_line_ids" nolabel="1">
+                            <list create="0" delete="0" edit="0">
+                                <field name="product_id"/>
+                                <field name="qty_planned" string="Planned"/>
+                                <field name="qty_done" string="Used"/>
+                                <field name="product_uom_id" string="UoM"/>
+                            </list>
+                        </field>
                     </group>
                 </sheet>
                 <footer>
@@ -50,7 +75,7 @@
                             type="object" class="btn-warning"
                             invisible="wizard_mode != 'pause'"/>
                             
-                    <button name="action_start" string="Resume Timer &#38; Save Qty"
+                    <button name="action_start" string="Resume"
                             type="object" class="btn-primary"
                             invisible="wizard_mode != 'resume'"/>
                             
