@@ -72,8 +72,9 @@
                                 <field name="employee_id"/>
                             </div>
 
-                            <!-- Quantity progress -->
-                            <div class="d-flex justify-content-between align-items-center mt-2 mb-1 small">
+                            <!-- Quantity progress — Clickable to open update wizard -->
+                            <div class="d-flex justify-content-between align-items-center mt-2 mb-1 small"
+                                 name="action_open_resume_wizard" type="object" role="button" title="Click to update quantity">
                                 <span>
                                     <i class="fa fa-check-circle me-1 text-success" title="Producing"/>
                                     <strong><field name="qty_producing"/></strong>
@@ -140,6 +141,7 @@
     <!-- Action: Shop Floor fullscreen view — explicitly uses our custom views -->
     <record id="action_mrp_shop_floor" model="ir.actions.act_window">
         <field name="name">Shop Floor</field>
+        <field name="group_ids" eval="[(4, ref('mrp.group_mrp_user'))]"/>
         <field name="res_model">mrp.workorder</field>
         <field name="view_mode">kanban,list</field>
         <field name="view_id" ref="mrp_workorder_view_kanban_shop_floor"/>
@@ -163,11 +165,9 @@
         <field name="model">mrp.shop.floor.login</field>
         <field name="arch" type="xml">
             <form string="Shop Floor Login">
-                <div class="text-center w-100 mb-3">
-                    <h3>Please enter your PIN to continue</h3>
-                </div>
                 <group>
-                    <field name="pin" widget="char" placeholder="Enter PIN..."/>
+                    <field name="employee_id" options="{'no_create': True, 'no_open': True}"/>
+                    <field name="pin" password="1" placeholder="Enter PIN..."/>
                 </group>
                 <footer>
                     <button name="action_login" string="Login" type="object" class="btn-primary"/>

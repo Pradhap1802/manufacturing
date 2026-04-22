@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_employee_form_inherit_manufacturing" model="ir.ui.view">
+        <field name="name">hr.employee.form.inherit.manufacturing</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_open_mrp_shop_floor_login" string="Shop Floor Login" type="object" groups="manufacturing.group_manufacturing_shop_floor"/>
+            </xpath>
+            <xpath expr="//group[@name='payroll_group']" position="inside">
+                <group string="Manufacturing Costing">
+                    <field name="hourly_cost" widget="monetary"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

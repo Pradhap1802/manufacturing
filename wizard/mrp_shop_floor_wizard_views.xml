@@ -16,7 +16,7 @@
                     <div invisible="state != 'progress'"
                          class="alert alert-warning d-flex align-items-center justify-content-between p-2 mb-3">
                         <span class="fw-bold">
-                            <i class="fa fa-clock-o me-2"/>Time Elapsed:
+                            <i class="fa fa-clock-o me-2"/>Time Consumed:
                         </span>
                         <strong style="font-size: 1.4em; font-family: monospace;">
                             <field name="duration" widget="float_time" readonly="1"/>

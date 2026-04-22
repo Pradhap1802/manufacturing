@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, _
+from odoo import models, fields, api, _
 
 class HrEmployee(models.Model):
     _inherit = 'hr.employee'
@@ -18,3 +18,16 @@ class HrEmployee(models.Model):
                 'default_employee_id': self.id,
             }
         }
+    def write(self, vals):
+        res = super(HrEmployee, self).write(vals)
+        if 'hourly_cost' in vals:
+            # Sync to workcenter employee records to keep costs aligned
+            self.env['mrp.workcenter.employee'].search([('employee_id', 'in', self.ids)]).write({
+                'cost_hour': vals['hourly_cost']
+            })
+        return res
+
+class HrEmployeePublic(models.Model):
+    _inherit = 'hr.employee.public'
+
+    hourly_cost = fields.Float(readonly=True, help="Exposed for manufacturing costing background processes")

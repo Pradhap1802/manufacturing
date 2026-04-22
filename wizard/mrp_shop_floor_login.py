@@ -6,19 +6,21 @@ class MrpShopFloorLogin(models.TransientModel):
     _name = 'mrp.shop.floor.login'
     _description = 'Shop Floor Login'
 
+    employee_id = fields.Many2one('hr.employee', string='Operator', required=True)
     pin = fields.Char(string='Employee PIN', required=True)
 
     def action_login(self):
         self.ensure_one()
-        employee = self.env['hr.employee'].search([('pin', '=', self.pin)], limit=1)
-        if not employee:
-            raise UserError(_("Invalid PIN. Please try again."))
+        # Secure PIN check against the selected employee
+        if not self.employee_id.sudo().pin or self.employee_id.sudo().pin != self.pin:
+            raise UserError(_("Invalid PIN for %s. Please try again.") % self.employee_id.name)
 
-        # Return the shop floor action with extra context/domain
-        action = self.env.ref('manufacturing.action_mrp_shop_floor').read()[0]
+        employee = self.employee_id
         
-        # Determine which operations are allowed for this employee
-        # This includes work centers where they are allowed and operations where they are specifically allowed
+        # Return the shop floor action with extra context/domain
+        action = self.env.ref('manufacturing.action_mrp_shop_floor').sudo().read()[0]
+        
+        # Determine which operations/work centers are allowed for this employee
         allowed_workcenter_ids = self.env['mrp.workcenter'].search([
             ('allowed_employee_ids', 'in', employee.id)
         ]).ids
@@ -27,10 +29,10 @@ class MrpShopFloorLogin(models.TransientModel):
             ('allowed_employee_ids', 'in', employee.id)
         ]).ids
 
-        # Build the domain: 
-        # (WorkCenter is in allowed list) OR (Specific Operation is in allowed list)
+        # Build the domain for Work Orders specific to THIS operator
+        # They see work orders in their allowed work centers/operations
         domain = [
-            ('state', 'in', ('ready', 'progress')),
+            ('state', 'in', ('ready', 'progress', 'pending')),
             '|',
             ('workcenter_id', 'in', allowed_workcenter_ids),
             ('operation_id', 'in', allowed_operation_ids)
@@ -40,7 +42,8 @@ class MrpShopFloorLogin(models.TransientModel):
         action['context'] = {
             'default_employee_id': employee.id,
             'authenticated_employee_id': employee.id,
-            'search_default_ready': 1
+            'search_default_ready': 1,
+            'search_default_employee_id': employee.id,
         }
         action['name'] = _("Shop Floor - %s") % employee.name
         return action

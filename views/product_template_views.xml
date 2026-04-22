@@ -5,7 +5,8 @@
         <field name="model">product.template</field>
         <field name="inherit_id" ref="stock.product_template_form_view_procurement_button"/>
         <field name="arch" type="xml">
-            <xpath expr="//button[@name='action_product_tmpl_forecast_report']" position="after">
+            <!-- Positioning the secondary quantity button right next to the standard On Hand button -->
+            <xpath expr="//button[@name='action_product_tmpl_forecast_report']" position="before">
                 <button type="object" name="action_open_quants"
                         class="oe_stat_button" icon="fa-balance-scale"
                         groups="manufacturing.group_manufacturing_multi_uom">
@@ -20,21 +21,37 @@
                 </button>
             </xpath>
 
+            <!-- Configuration in Inventory Page -->
             <xpath expr="//page[@name='inventory']" position="inside">
-
-                <group groups="manufacturing.group_manufacturing_multi_uom" string="Multi UoM Configuration">
+                <group groups="manufacturing.group_manufacturing_multi_uom" string="Multi UoM Management">
                     <group>
-                        <field name="secondary_uom_id"/>
-                        <field name="secondary_uom_ratio"/>
-                    </group>
-                    <group>
-                        <label for="secondary_qty"/>
+                        <field name="secondary_uom_id" placeholder="e.g. KG"/>
+                        <label for="secondary_uom_ratio"/>
                         <div class="o_row">
-                            <field name="secondary_qty"/>
-                            <field name="secondary_uom_id" nolabel="1" readonly="1" options="{'no_open': True}"/>
+                            <span>1 </span>
+                            <field name="uom_id" readonly="1" options="{'no_open': True}" class="oe_inline"/>
+                            <span> = </span>
+                            <field name="secondary_uom_ratio" class="oe_inline"/>
+                            <field name="secondary_uom_id" readonly="1" options="{'no_open': True}" class="oe_inline" nolabel="1"/>
                         </div>
                     </group>
+                    <group>
+                        <field name="secondary_qty" string="Current Stock (Secondary)"/>
+                    </group>
                 </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_template_kanban_view_inherit_multi_uom" model="ir.ui.view">
+        <field name="name">product.template.kanban.inherit.multi.uom</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_kanban_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_properties']" position="before">
+                <div groups="manufacturing.group_manufacturing_multi_uom" t-if="record.secondary_uom_id.raw_value">
+                    Secondary: <field name="secondary_qty"/> <field name="secondary_uom_id"/>
+                </div>
             </xpath>
         </field>
     </record>

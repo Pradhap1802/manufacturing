@@ -12,6 +12,13 @@
                     </div>
                 </button>
             </div>
+            <xpath expr="//label[@for='product_qty']" position="before">
+                <label for="secondary_qty" groups="manufacturing.group_manufacturing_multi_uom" invisible="not secondary_uom_id"/>
+                <div class="o_row" groups="manufacturing.group_manufacturing_multi_uom" invisible="not secondary_uom_id">
+                    <field name="secondary_qty"/>
+                    <field name="secondary_uom_id" options="{'no_open': True, 'no_create': True}" readonly="1"/>
+                </div>
+            </xpath>
         </field>
     </record>
 </odoo>

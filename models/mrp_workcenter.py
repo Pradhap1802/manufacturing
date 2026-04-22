@@ -24,7 +24,12 @@ class MrpWorkcenterEmployee(models.Model):
 
     workcenter_id = fields.Many2one('mrp.workcenter', string='Work Center', required=True, ondelete='cascade')
     employee_id = fields.Many2one('hr.employee', string='Employee', required=True)
-    cost_hour = fields.Float(string='Cost per Hour', default=0.0)
+    cost_hour = fields.Float(string='Cost per Hour', help="Calculated based on employee's hourly cost.")
+
+    @api.onchange('employee_id')
+    def _onchange_employee_id(self):
+        if self.employee_id:
+            self.cost_hour = self.employee_id.hourly_cost
 
 class MrpRoutingWorkcenter(models.Model):
     _inherit = 'mrp.routing.workcenter'
