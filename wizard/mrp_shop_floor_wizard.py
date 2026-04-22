@@ -72,10 +72,10 @@ class MrpShopFloorWizard(models.TransientModel):
             w.qty_remaining = w.qty_production - w.qty_producing
 
     def _handle_scrap(self):
-        """Handle scrap for the selected raw material component."""
+        """Handle scrap for the selected raw material component and auto-validate."""
         if self.scrap_qty > 0 and self.scrap_product_id:
             # Only scrap if a specific component is selected
-            self.env['stock.scrap'].create({
+            scrap = self.env['stock.scrap'].create({
                 'product_id': self.scrap_product_id.id,
                 'scrap_qty': self.scrap_qty,
                 'production_id': self.production_id.id,
@@ -83,6 +83,9 @@ class MrpShopFloorWizard(models.TransientModel):
                 'location_id': self.production_id.location_src_id.id,
                 'scrap_reason': self.scrap_reason or _('Raw Material Scrap (Shop Floor)'),
             })
+            # Automatically confirm/validate the scrap record
+            scrap.action_validate()
+
             # Clear fields
             self.scrap_qty = 0.0
             self.scrap_reason = False

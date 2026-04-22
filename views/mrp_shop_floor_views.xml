@@ -13,6 +13,7 @@
                 <filter name="progress" string="In Progress" domain="[('state', '=', 'progress')]"/>
                 <searchpanel>
                     <field name="workcenter_id" icon="fa-industry" enable_counters="1"/>
+                    <field name="state" icon="fa-tasks" enable_counters="1"/>
                     <field name="employee_id" icon="fa-users" enable_counters="1"/>
                 </searchpanel>
             </search>
@@ -152,7 +153,7 @@
             (0, 0, {'view_mode': 'kanban', 'view_id': ref('mrp_workorder_view_kanban_shop_floor')}),
         ]"/>
         <field name="search_view_id" ref="mrp_workorder_view_search_shop_floor"/>
-        <field name="domain">[('state', 'in', ('ready', 'progress', 'pending'))]</field>
+        <field name="domain">[('state', 'in', ('ready', 'progress', 'pending', 'done'))]</field>
         <field name="context">{'search_default_ready': 1}</field>
         <field name="target">fullscreen</field>
         <field name="help" type="html">
