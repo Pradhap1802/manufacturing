@@ -137,7 +137,7 @@ class MrpWorkorder(models.Model):
 
     def action_shop_floor_quality_alert(self):
         self.ensure_one()
-        # Verify if Quality module is installed, otherwise fallback to custom alert or show warning
+        # Verify if Enterprise Quality module is installed, otherwise use our robust custom one
         if 'quality.alert' in self.env:
              return {
                 'name': _('Create Quality Alert'),
@@ -151,6 +151,10 @@ class MrpWorkorder(models.Model):
                     'default_product_id': self.product_id.id,
                 }
             }
+        
+        # Determine the first stage of our custom quality alert
+        first_stage = self.env['mrp.quality.alert.stage'].search([], limit=1)
+        
         return {
             'name': _('Create Quality Alert'),
             'type': 'ir.actions.act_window',
@@ -161,6 +165,7 @@ class MrpWorkorder(models.Model):
                 'default_workorder_id': self.id,
                 'default_product_id': self.product_id.id,
                 'default_production_id': self.production_id.id,
+                'default_stage_id': first_stage.id if first_stage else False,
             }
         }
 
@@ -182,6 +187,15 @@ class MrpWorkorder(models.Model):
             }
         }
 
+class MrpQualityAlertStage(models.Model):
+    _name = 'mrp.quality.alert.stage'
+    _description = 'Quality Alert Stage'
+    _order = 'sequence, id'
+
+    name = fields.Char('Stage Name', required=True, translate=True)
+    sequence = fields.Integer('Sequence', default=10)
+    folded = fields.Boolean('Folded in Kanban')
+
 class MrpQualityAlert(models.Model):
     _name = 'mrp.quality.alert'
     _description = 'MRP Quality Alert'
@@ -190,14 +204,36 @@ class MrpQualityAlert(models.Model):
     name = fields.Char('Reference', required=True, copy=False, readonly=True, index=True, default=lambda self: _('New'))
     workorder_id = fields.Many2one('mrp.workorder', 'Work Order')
     product_id = fields.Many2one('product.product', 'Product')
-    production_id = fields.Many2one('mrp.production', 'Production Order')
+    production_id = fields.Many2one('mrp.production', 'Production Order', related='workorder_id.production_id', store=True)
+    workcenter_id = fields.Many2one('mrp.workcenter', 'Work Center', related='workorder_id.workcenter_id', store=True)
+    operation_id = fields.Many2one('mrp.routing.workcenter', 'Operation', related='workorder_id.operation_id', store=True)
+    
     description = fields.Text('Description')
-    user_id = fields.Many2one('res.users', 'Responsible', default=lambda self: self.env.user)
-    priority = fields.Selection([('0', 'Normal'), ('1', 'Low'), ('2', 'High'), ('3', 'Very High')], string='Priority', default='1')
+    user_id = fields.Many2one('res.users', 'Responsible', default=lambda self: self.env.user, tracking=True)
+    priority = fields.Selection([('0', 'Normal'), ('1', 'Low'), ('2', 'High'), ('3', 'Very High')], string='Priority', default='1', tracking=True)
+    
+    stage_id = fields.Many2one('mrp.quality.alert.stage', string='Stage', ondelete='restrict', tracking=True, index=True, copy=False)
+    
+    # Quality Measures (Enterprise Style)
+    test_type = fields.Selection([
+        ('pass_fail', 'Pass/Fail'),
+        ('measure', 'Measure'),
+        ('picture', 'Take a Picture')
+    ], string='Test Type', default='pass_fail', tracking=True)
+
+    test_result = fields.Selection([
+        ('pass', 'Pass'),
+        ('fail', 'Fail')
+    ], string='Test Result', tracking=True)
+
+    measure = fields.Float('Measurement', tracking=True)
+    picture = fields.Binary('Picture', attachment=True)
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('mrp.quality.alert') or _('New')
+            if not vals.get('stage_id'):
+                vals['stage_id'] = self.env['mrp.quality.alert.stage'].search([], limit=1).id
         return super(MrpQualityAlert, self).create(vals_list)
