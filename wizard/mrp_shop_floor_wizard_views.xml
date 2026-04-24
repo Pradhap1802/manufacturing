@@ -39,8 +39,8 @@
                         </group>
                     </group>
 
-                    <!-- Scrap section, restricted to Raw Materials only -->
-                    <group string="Raw Material Scrap Entry">
+                    <!-- Scrap section, restricted to Raw Materials only (Hidden in Resume mode) -->
+                    <group string="Raw Material Scrap Entry" invisible="wizard_mode == 'resume'">
                         <group>
                             <field name="scrap_product_id" 
                                    string="Select Raw Material"

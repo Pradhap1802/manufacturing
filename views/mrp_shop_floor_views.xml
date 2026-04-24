@@ -127,12 +127,37 @@
                                         invisible="state != 'progress'">
                                     <i class="fa fa-check me-1"/>Finish
                                 </button>
-                                <!-- Manage gear: general wizard access -->
-                                <button name="action_open_shop_floor_wizard" type="object"
-                                        class="btn btn-outline-secondary btn-sm float-end"
-                                        title="Manage (qty / scrap)">
-                                    <i class="fa fa-cogs"/>
-                                </button>
+                                <!-- Manage dropdown: Maintenance, Quality, Scrap, Qty -->
+                                <div class="dropdown float-end">
+                                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle o_shop_floor_manage_btn" 
+                                            type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                            title="Manage Operations">
+                                        <i class="fa fa-cogs me-1"/>Manage
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" type="object" name="action_open_shop_floor_wizard" style="cursor: pointer;">
+                                                <i class="fa fa-balance-scale me-2 text-primary"/>Update Quantities
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"/></li>
+                                        <li>
+                                            <a class="dropdown-item" type="object" name="action_shop_floor_maintenance" style="cursor: pointer;">
+                                                <i class="fa fa-wrench me-2 text-warning"/>Maintenance Request
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" type="object" name="action_shop_floor_quality_alert" style="cursor: pointer;">
+                                                <i class="fa fa-exclamation-triangle me-2 text-danger"/>Quality Alert
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" type="object" name="action_shop_floor_scrap" style="cursor: pointer;">
+                                                <i class="fa fa-trash me-2 text-muted"/>Scrap Product
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </footer>
                         </div>
                     </t>
@@ -199,12 +224,13 @@
         </field>
     </record>
 
-    <!-- Action: PIN Login popup -->
+    <!-- Action: PIN Login popup — Standard Odoo 19 Scoped App entry point -->
     <record id="action_mrp_shop_floor_login" model="ir.actions.act_window">
         <field name="name">Shop Floor Login</field>
         <field name="res_model">mrp.shop.floor.login</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
+        <field name="path">shop-floor</field>
     </record>
 
     <!-- Menu items -->

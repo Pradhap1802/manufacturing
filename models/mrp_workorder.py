@@ -117,6 +117,11 @@ class MrpWorkorder(models.Model):
 
     def action_shop_floor_maintenance(self):
         self.ensure_one()
+        equipment_id = False
+        # Defensively check for Enterprise equipment field to avoid AttributeError
+        if hasattr(self.workcenter_id, 'equipment_ids') and self.workcenter_id.equipment_ids:
+            equipment_id = self.workcenter_id.equipment_ids[:1].id
+            
         return {
             'name': _('Create Maintenance Request'),
             'type': 'ir.actions.act_window',
@@ -125,13 +130,27 @@ class MrpWorkorder(models.Model):
             'target': 'new',
             'context': {
                 'default_maintenance_type': 'corrective',
-                'default_equipment_id': self.workcenter_id.equipment_ids[:1].id if self.workcenter_id.equipment_ids else False,
+                'default_equipment_id': equipment_id,
                 'default_description': _('Maintenance for work order %s at work center %s') % (self.name, self.workcenter_id.name),
             }
         }
 
     def action_shop_floor_quality_alert(self):
         self.ensure_one()
+        # Verify if Quality module is installed, otherwise fallback to custom alert or show warning
+        if 'quality.alert' in self.env:
+             return {
+                'name': _('Create Quality Alert'),
+                'type': 'ir.actions.act_window',
+                'res_model': 'quality.alert',
+                'view_mode': 'form',
+                'target': 'new',
+                'context': {
+                    'default_production_id': self.production_id.id,
+                    'default_workorder_id': self.id,
+                    'default_product_id': self.product_id.id,
+                }
+            }
         return {
             'name': _('Create Quality Alert'),
             'type': 'ir.actions.act_window',
@@ -142,6 +161,24 @@ class MrpWorkorder(models.Model):
                 'default_workorder_id': self.id,
                 'default_product_id': self.product_id.id,
                 'default_production_id': self.production_id.id,
+            }
+        }
+
+    def action_shop_floor_scrap(self):
+        self.ensure_one()
+        return {
+            'name': _('Scrap'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.scrap',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_workorder_id': self.id,
+                'default_production_id': self.production_id.id,
+                'default_product_id': self.product_id.id,
+                'default_uom_id': self.product_uom_id.id,
+                'default_company_id': self.company_id.id,
+                'default_location_id': self.production_id.location_src_id.id,
             }
         }
 
