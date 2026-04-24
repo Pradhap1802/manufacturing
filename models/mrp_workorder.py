@@ -187,6 +187,12 @@ class MrpWorkorder(models.Model):
             }
         }
 
+class MrpQualityReason(models.Model):
+    _name = 'mrp.quality.reason'
+    _description = 'Root Cause Reason'
+
+    name = fields.Char('Reason', required=True)
+
 class MrpQualityAlertStage(models.Model):
     _name = 'mrp.quality.alert.stage'
     _description = 'Quality Alert Stage'
@@ -209,10 +215,16 @@ class MrpQualityAlert(models.Model):
     operation_id = fields.Many2one('mrp.routing.workcenter', 'Operation', related='workorder_id.operation_id', store=True)
     
     description = fields.Text('Description')
+    action_corrective = fields.Text('Corrective Action')
+    action_preventive = fields.Text('Preventive Action')
+    
     user_id = fields.Many2one('res.users', 'Responsible', default=lambda self: self.env.user, tracking=True)
+    date_alert = fields.Datetime('Alert Date', default=fields.Datetime.now, readonly=True)
+    date_close = fields.Datetime('Date Closed', readonly=True)
     priority = fields.Selection([('0', 'Normal'), ('1', 'Low'), ('2', 'High'), ('3', 'Very High')], string='Priority', default='1', tracking=True)
     
-    stage_id = fields.Many2one('mrp.quality.alert.stage', string='Stage', ondelete='restrict', tracking=True, index=True, copy=False)
+    reason_id = fields.Many2one('mrp.quality.reason', string='Root Cause')
+    stage_id = fields.Many2one('mrp.quality.alert.stage', string='Stage', ondelete='set null', tracking=True, index=True, copy=False)
     
     # Quality Measures (Enterprise Style)
     test_type = fields.Selection([
@@ -228,6 +240,17 @@ class MrpQualityAlert(models.Model):
 
     measure = fields.Float('Measurement', tracking=True)
     picture = fields.Binary('Picture', attachment=True)
+
+    def action_see_workorder(self):
+        self.ensure_one()
+        return {
+            'name': _('Work Order'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.workorder',
+            'view_mode': 'form',
+            'res_id': self.workorder_id.id,
+            'target': 'current',
+        }
 
     @api.model_create_multi
     def create(self, vals_list):
