@@ -30,7 +30,7 @@
         </field>
     </record>
 
-    <!-- Quality Alert Form (SYNCED WITH LIST VIEW FIELDS) -->
+    <!-- Quality Alert Form (SYNCED WITH LIST VIEW FIELDS + CHATTER) -->
     <record id="view_mrp_quality_alert_form_stunning_final" model="ir.ui.view">
         <field name="name">mrp.quality.alert.form.stunning.final</field>
         <field name="model">mrp.quality.alert</field>
@@ -47,52 +47,50 @@
                     </div>
                     
                     <div class="row mt-4">
-                        <!-- Column 1: ORIGIN & DATE (List View Alignment) -->
+                        <!-- Column 1: ORIGIN & DATE -->
                         <div class="col-6">
                             <h5 class="fw-bold text-uppercase mb-3" style="letter-spacing: 1px; color: #333;">Origin &amp; Date</h5>
                             <group>
-                                <field name="product_id" options="{'no_open': True}"/>
-                                <field name="workcenter_id" options="{'no_open': True}"/>
+                                <field name="product_id" options="{'no_open': True}" tracking="1"/>
+                                <field name="workcenter_id" options="{'no_open': True}" tracking="1"/>
                                 <field name="date_alert" readonly="1" string="Alert Date"/>
                                 <field name="workorder_id" groups="base.group_no_one"/>
                             </group>
                         </div>
                         
-                        <!-- Column 2: STATUS & MEASURE (List View Alignment) -->
+                        <!-- Column 2: STATUS & MEASURE -->
                         <div class="col-6">
                             <h5 class="fw-bold text-uppercase mb-3" style="letter-spacing: 1px; color: #333;">Status &amp; Measure</h5>
                             <group>
-                                <field name="test_type" widget="radio" options="{'horizontal': true}"/>
-                                <field name="test_result" widget="radio" options="{'horizontal': true}"/>
-                                <field name="priority" widget="priority"/>
-                                <field name="stage_id" string="Current Stage" readonly="1"/>
+                                <field name="test_type" widget="radio" options="{'horizontal': true}" tracking="1"/>
+                                <field name="test_result" widget="radio" options="{'horizontal': true}" tracking="1"/>
+                                <field name="priority" widget="priority" tracking="1"/>
+                                <field name="user_id" widget="many2one_avatar_user" readonly="1"/>
                             </group>
                         </div>
                     </div>
 
-                    <!-- Defect Details (Secondary context) -->
+                    <!-- Defect Details -->
                     <div class="mt-4 border-top pt-3">
                         <h5 class="fw-bold text-uppercase mb-3" style="letter-spacing: 1px; color: #333;">Defect Details</h5>
                         <group>
-                            <field name="description" placeholder="Describe the quality issue in detail..."/>
-                            <field name="measure" invisible="test_type != 'measure'"/>
+                            <field name="description" placeholder="Describe the quality issue in detail..." tracking="1"/>
+                            <field name="measure" invisible="test_type != 'measure'" tracking="1"/>
                             <field name="picture" widget="image" invisible="test_type != 'picture'" class="oe_avatar"/>
                         </group>
                     </div>
 
-                    <!-- Hidden fields for data integrity -->
                     <field name="production_id" invisible="1"/>
                 </sheet>
+                <!-- SIMPLIFIED CHATTER -->
                 <div class="oe_chatter">
-                    <field name="message_follower_ids"/>
-                    <field name="activity_ids"/>
-                    <field name="message_ids"/>
+                    <chatter/>
                 </div>
             </form>
         </field>
     </record>
 
-    <!-- Quality Alert List View (THE REFERENCE) -->
+    <!-- Quality Alert List View -->
     <record id="view_mrp_quality_alert_tree_final" model="ir.ui.view">
         <field name="name">mrp.quality.alert.tree.final</field>
         <field name="model">mrp.quality.alert</field>
@@ -113,6 +111,7 @@
         <field name="name">Quality Alerts</field>
         <field name="res_model">mrp.quality.alert</field>
         <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_mrp_quality_alert_tree_final"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'list', 'view_id': ref('view_mrp_quality_alert_tree_final')}),
