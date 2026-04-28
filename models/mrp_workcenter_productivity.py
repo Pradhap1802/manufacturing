@@ -28,39 +28,3 @@ class MrpWorkcenterProductivity(models.Model):
             time.total_cost = duration * rate
 
 
-class MrpWorkcenter(models.Model):
-    _inherit = 'mrp.workcenter'
-
-    # Production target tracking
-    daily_target_qty = fields.Float(
-        string='Daily Target Qty',
-        help="Expected number of units to produce per day at this work center."
-    )
-
-    qty_produced_today = fields.Float(
-        string='Produced Today',
-        compute='_compute_today_production',
-        help="Total quantity of finished work orders completed today."
-    )
-
-    target_achievement_pct = fields.Float(
-        string='Target Achievement (%)',
-        compute='_compute_today_production',
-        help="Percentage of daily target achieved today."
-    )
-
-    @api.depends('daily_target_qty')
-    def _compute_today_production(self):
-        today_start = datetime.combine(date.today(), datetime.min.time())
-        for wc in self:
-            done_orders = self.env['mrp.workorder'].search([
-                ('workcenter_id', '=', wc.id),
-                ('state', '=', 'done'),
-                ('date_finished', '>=', fields.Datetime.to_string(today_start)),
-            ])
-            qty = sum(done_orders.mapped('qty_producing'))
-            wc.qty_produced_today = qty
-            if wc.daily_target_qty:
-                wc.target_achievement_pct = (qty / wc.daily_target_qty) * 100.0
-            else:
-                wc.target_achievement_pct = 0.0

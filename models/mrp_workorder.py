@@ -90,9 +90,14 @@ class MrpWorkorder(models.Model):
     def button_start(self):
 
         self.ensure_one()
-        # If no employee is set, we use the logged-in user's employee
+        # If no employee is set, we use the authenticated employee from context or logged-in user's employee
         if not self.employee_id:
-            employee = self.env.user.employee_id
+            auth_emp_id = self.env.context.get('authenticated_employee_id')
+            if auth_emp_id:
+                employee = self.env['hr.employee'].browse(auth_emp_id)
+            else:
+                employee = self.env.user.employee_id
+                
             if employee:
                 self.employee_id = employee
             else:
@@ -108,7 +113,12 @@ class MrpWorkorder(models.Model):
         if operation_allowed_ids and self.employee_id.id not in operation_allowed_ids:
             raise UserError(_("Employee %s is not allowed to perform operation %s.") % (self.employee_id.name, self.operation_id.name))
 
-        return super(MrpWorkorder, self).button_start()
+        res = super(MrpWorkorder, self).button_start()
+        # Find the active timer just created and assign the employee
+        active_timer = self.time_ids.filtered(lambda t: not t.date_end)
+        if active_timer:
+            active_timer.write({'employee_id': self.employee_id.id})
+        return res
 
     def button_finish(self):
         res = super(MrpWorkorder, self).button_finish()
@@ -132,6 +142,8 @@ class MrpWorkorder(models.Model):
                 'default_maintenance_type': 'corrective',
                 'default_equipment_id': equipment_id,
                 'default_description': _('Maintenance for work order %s at work center %s') % (self.name, self.workcenter_id.name),
+                'default_production_id': self.production_id.id,
+                'default_workorder_id': self.id,
             }
         }
 

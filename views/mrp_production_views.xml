@@ -6,6 +6,18 @@
         <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
         <field name="arch" type="xml">
             <div name="button_box" position="inside">
+                <button name="action_view_quality_alerts" type="object" class="oe_stat_button" icon="fa-exclamation-triangle" invisible="quality_alert_count == 0">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value"><field name="quality_alert_count"/></span>
+                        <span class="o_stat_text">Quality Alerts</span>
+                    </div>
+                </button>
+                <button name="action_view_maintenance_requests" type="object" class="oe_stat_button" icon="fa-wrench" invisible="maintenance_count == 0">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_value"><field name="maintenance_count"/></span>
+                        <span class="o_stat_text">Maintenance</span>
+                    </div>
+                </button>
                 <button name="action_open_shop_floor" type="object" class="oe_stat_button" icon="fa-tablet" invisible="state not in ('confirmed', 'progress', 'done')">
                     <div class="o_field_widget o_stat_info">
                         <span class="o_stat_text">Shop Floor</span>
@@ -19,6 +31,26 @@
                     <field name="secondary_uom_id" options="{'no_open': True, 'no_create': True}" readonly="1"/>
                 </div>
             </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Labour Cost" name="labour_cost">
+                    <group>
+                        <field name="company_currency_id" invisible="1"/>
+                        <field name="employee_cost_total" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="mrp_production_tree_view_inherit_labour_cost" model="ir.ui.view">
+        <field name="name">mrp.production.tree.view.inherit.labour.cost</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_tree_view"/>
+        <field name="arch" type="xml">
+            <list position="inside">
+                <field name="company_currency_id" column_invisible="1"/>
+                <field name="employee_cost_total" sum="Total Labour Cost" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+            </list>
         </field>
     </record>
 </odoo>

@@ -29,21 +29,23 @@ class MrpShopFloorLogin(models.TransientModel):
         action = self.env.ref('manufacturing.action_mrp_shop_floor').sudo().read()[0]
         
         # Determine which operations/work centers are allowed for this employee
-        allowed_workcenter_ids = self.env['mrp.workcenter'].search([
-            ('allowed_employee_ids', 'in', employee.id)
+        # An empty allowed_employee_ids means everyone is allowed
+        allowed_wc_ids = self.env['mrp.workcenter'].search([
+            '|', ('allowed_employee_ids', '=', False), ('allowed_employee_ids', 'in', employee.id)
         ]).ids
         
-        allowed_operation_ids = self.env['mrp.routing.workcenter'].search([
-            ('allowed_employee_ids', 'in', employee.id)
+        allowed_op_ids = self.env['mrp.routing.workcenter'].search([
+            '|', ('allowed_employee_ids', '=', False), ('allowed_employee_ids', 'in', employee.id)
         ]).ids
 
         # Build the domain for Work Orders specific to THIS operator
-        # They see work orders in their allowed work centers/operations
+        # They see work orders ONLY if BOTH workcenter and operation allow them.
         domain = [
             ('state', 'in', ('ready', 'progress', 'pending')),
+            ('workcenter_id', 'in', allowed_wc_ids),
             '|',
-            ('workcenter_id', 'in', allowed_workcenter_ids),
-            ('operation_id', 'in', allowed_operation_ids)
+            ('operation_id', '=', False),
+            ('operation_id', 'in', allowed_op_ids)
         ]
         
         action['domain'] = domain

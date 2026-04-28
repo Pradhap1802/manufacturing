@@ -15,11 +15,6 @@
                                 </list>
                             </field>
                         </group>
-                        <group string="Production Target" col="3">
-                            <field name="daily_target_qty"/>
-                            <field name="qty_produced_today" readonly="1"/>
-                            <field name="target_achievement_pct" readonly="1" string="Achievement (%)"/>
-                        </group>
                     </page>
                 </xpath>
             </field>

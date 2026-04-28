@@ -8,3 +8,4 @@ from . import stock_scrap
 from . import res_config_settings
 from . import product_template
 from . import ir_http
+from . import maintenance_request
