@@ -54,6 +54,16 @@
                         </group>
                     </group>
 
+                    <!-- Downtime Reason — only shown in pause mode -->
+                    <group string="Why are you pausing?" invisible="wizard_mode != 'pause'">
+                        <group>
+                            <field name="downtime_reason" required="wizard_mode == 'pause'" placeholder="Select a reason..."/>
+                        </group>
+                        <group>
+                            <field name="downtime_notes" placeholder="Describe the issue briefly..."/>
+                        </group>
+                    </group>
+
                     <!-- Materials List (Read-only Reference) -->
                     <group string="Materials Reference">
                         <field name="component_line_ids" nolabel="1">

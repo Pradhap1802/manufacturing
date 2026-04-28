@@ -6,13 +6,20 @@
             <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
             <field name="arch" type="xml">
                 <xpath expr="//notebook" position="inside">
-                    <page string="Allowed Employees" name="allowed_employees">
-                        <field name="employee_cost_ids">
-                            <list editable="bottom">
-                                <field name="employee_id"/>
-                                <field name="cost_hour"/>
-                            </list>
-                        </field>
+                    <page string="Allowed Employees &amp; Costs" name="allowed_employees">
+                        <group string="Labour Cost per Employee">
+                            <field name="employee_cost_ids" nolabel="1">
+                                <list editable="bottom">
+                                    <field name="employee_id"/>
+                                    <field name="cost_hour"/>
+                                </list>
+                            </field>
+                        </group>
+                        <group string="Production Target" col="3">
+                            <field name="daily_target_qty"/>
+                            <field name="qty_produced_today" readonly="1"/>
+                            <field name="target_achievement_pct" readonly="1" string="Achievement (%)"/>
+                        </group>
                     </page>
                 </xpath>
             </field>

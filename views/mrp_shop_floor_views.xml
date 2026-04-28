@@ -94,7 +94,7 @@
                             <div invisible="state != 'progress'"
                                  class="d-flex align-items-center mt-1 mb-2 p-1 rounded"
                                  style="background: #fff3cd; color: #856404;">
-                                <i class="fa fa-clock-o me-2 fs-5"/>
+                                <i class="fa fa-clock-o me-2 fs-5" title="Live Timer"/>
                                 <strong style="font-family: monospace; font-size: 1.2em;">
                                     <field name="duration" widget="mrp_timer" readonly="1"/>
                                 </strong>
@@ -134,25 +134,25 @@
                                             title="Manage Operations">
                                         <i class="fa fa-cogs me-1"/>Manage
                                     </button>
-                                    <ul class="dropdown-menu">
+                                    <ul class="dropdown-menu" role="menu">
                                         <li>
-                                            <a class="dropdown-item" type="object" name="action_open_shop_floor_wizard" style="cursor: pointer;">
+                                            <a class="dropdown-item" type="object" name="action_open_shop_floor_wizard" style="cursor: pointer;" role="menuitem">
                                                 <i class="fa fa-balance-scale me-2 text-primary"/>Update Quantities
                                             </a>
                                         </li>
                                         <li><hr class="dropdown-divider"/></li>
                                         <li>
-                                            <a class="dropdown-item" type="object" name="action_shop_floor_maintenance" style="cursor: pointer;">
+                                            <a class="dropdown-item" type="object" name="action_shop_floor_maintenance" style="cursor: pointer;" role="menuitem">
                                                 <i class="fa fa-wrench me-2 text-warning"/>Maintenance Request
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" type="object" name="action_shop_floor_quality_alert" style="cursor: pointer;">
+                                            <a class="dropdown-item" type="object" name="action_shop_floor_quality_alert" style="cursor: pointer;" role="menuitem">
                                                 <i class="fa fa-exclamation-triangle me-2 text-danger"/>Quality Alert
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" type="object" name="action_shop_floor_scrap" style="cursor: pointer;">
+                                            <a class="dropdown-item" type="object" name="action_shop_floor_scrap" style="cursor: pointer;" role="menuitem">
                                                 <i class="fa fa-trash me-2 text-muted"/>Scrap Product
                                             </a>
                                         </li>

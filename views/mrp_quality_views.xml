@@ -1,5 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- ============================================================
+         DEFAULT QUALITY ALERT STAGES  (noupdate=1 — safe on upgrade)
+    ============================================================ -->
+    <data noupdate="1">
+        <!-- Quality Alert Stages -->
+        <record id="mrp_quality_stage_new" model="mrp.quality.alert.stage">
+            <field name="name">New</field>
+            <field name="sequence">1</field>
+            <field name="folded">False</field>
+        </record>
+        <record id="mrp_quality_stage_investigating" model="mrp.quality.alert.stage">
+            <field name="name">Investigating</field>
+            <field name="sequence">2</field>
+            <field name="folded">False</field>
+        </record>
+        <record id="mrp_quality_stage_action_taken" model="mrp.quality.alert.stage">
+            <field name="name">Action Taken</field>
+            <field name="sequence">3</field>
+            <field name="folded">False</field>
+        </record>
+        <record id="mrp_quality_stage_closed" model="mrp.quality.alert.stage">
+            <field name="name">Closed</field>
+            <field name="sequence">4</field>
+            <field name="folded">True</field>
+        </record>
+
+        <!-- Default Root Cause Reasons -->
+        <record id="mrp_quality_reason_machine" model="mrp.quality.reason">
+            <field name="name">Machine / Equipment Fault</field>
+        </record>
+        <record id="mrp_quality_reason_material" model="mrp.quality.reason">
+            <field name="name">Raw Material Defect</field>
+        </record>
+        <record id="mrp_quality_reason_operator" model="mrp.quality.reason">
+            <field name="name">Operator Error</field>
+        </record>
+        <record id="mrp_quality_reason_process" model="mrp.quality.reason">
+            <field name="name">Process / Parameter Issue</field>
+        </record>
+        <record id="mrp_quality_reason_design" model="mrp.quality.reason">
+            <field name="name">Design / Specification Error</field>
+        </record>
+        <record id="mrp_quality_reason_environment" model="mrp.quality.reason">
+            <field name="name">Environmental Condition</field>
+        </record>
+    </data>
+
     <!-- Quality Alert Stages -->
     <record id="view_mrp_quality_alert_stage_tree" model="ir.ui.view">
         <field name="name">mrp.quality.alert.stage.tree</field>
@@ -119,16 +166,138 @@
         ]"/>
     </record>
 
+    <!-- Quality Alert Kanban View -->
+    <record id="view_mrp_quality_alert_kanban" model="ir.ui.view">
+        <field name="name">mrp.quality.alert.kanban</field>
+        <field name="model">mrp.quality.alert</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="stage_id" group_create="0" group_delete="0">
+                <field name="name"/>
+                <field name="product_id"/>
+                <field name="workcenter_id"/>
+                <field name="priority"/>
+                <field name="user_id"/>
+                <field name="stage_id"/>
+                <field name="date_alert"/>
+                <field name="test_result"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <strong><field name="name"/></strong>
+                            <field name="priority" widget="priority"/>
+                        </div>
+                        <div class="text-muted small mt-1">
+                            <i class="fa fa-cube me-1"/><field name="product_id"/>
+                        </div>
+                        <div class="text-muted small">
+                            <i class="fa fa-industry me-1"/><field name="workcenter_id"/>
+                        </div>
+                        <footer>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <span class="ms-auto">
+                                <field name="test_result" widget="label_selection"
+                                       options="{'classes': {'pass': 'success', 'fail': 'danger'}}"/>
+                            </span>
+                        </footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Quality Alert Graph (Defect Rate) -->
+    <record id="view_mrp_quality_alert_graph" model="ir.ui.view">
+        <field name="name">mrp.quality.alert.graph</field>
+        <field name="model">mrp.quality.alert</field>
+        <field name="arch" type="xml">
+            <graph string="Defect Rate" type="bar" sample="1">
+                <field name="workcenter_id" type="row"/>
+                <field name="date_alert" interval="week" type="col"/>
+                <field name="name" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Quality Alert Pivot -->
+    <record id="view_mrp_quality_alert_pivot" model="ir.ui.view">
+        <field name="name">mrp.quality.alert.pivot</field>
+        <field name="model">mrp.quality.alert</field>
+        <field name="arch" type="xml">
+            <pivot string="Quality Analysis" sample="1">
+                <field name="workcenter_id" type="row"/>
+                <field name="product_id" type="row"/>
+                <field name="date_alert" interval="month" type="col"/>
+                <field name="name" type="measure" string="Alerts"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Updated Primary Action with Kanban + Graph + Pivot -->
+    <record id="action_mrp_quality_alert_primary" model="ir.actions.act_window">
+        <field name="name">Quality Alerts</field>
+        <field name="res_model">mrp.quality.alert</field>
+        <field name="view_mode">kanban,list,form,graph,pivot</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_mrp_quality_alert_kanban')}),
+            (0, 0, {'view_mode': 'list',   'view_id': ref('view_mrp_quality_alert_tree_final')}),
+            (0, 0, {'view_mode': 'form',   'view_id': ref('view_mrp_quality_alert_form_stunning_final')}),
+            (0, 0, {'view_mode': 'graph',  'view_id': ref('view_mrp_quality_alert_graph')}),
+            (0, 0, {'view_mode': 'pivot',  'view_id': ref('view_mrp_quality_alert_pivot')}),
+        ]"/>
+    </record>
+
+    <!-- Downtime Analysis Action -->
+    <record id="action_mrp_downtime_analysis" model="ir.actions.act_window">
+        <field name="name">Downtime Analysis</field>
+        <field name="res_model">mrp.workcenter.productivity</field>
+        <field name="view_mode">list,graph,pivot</field>
+        <field name="domain">[('downtime_reason', '!=', False)]</field>
+        <field name="context">{}</field>
+    </record>
+
+    <!-- Employee Productivity Report Action -->
+    <record id="action_mrp_employee_productivity" model="ir.actions.act_window">
+        <field name="name">Labour Cost Report</field>
+        <field name="res_model">mrp.workcenter.productivity</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="context">{'search_default_group_by_employee': 1}</field>
+    </record>
+
     <!-- Final Menu structure -->
-    <menuitem id="menu_quality_root" 
-              name="Quality" 
-              parent="mrp.menu_mrp_root" 
+    <menuitem id="menu_quality_root"
+              name="Quality"
+              parent="mrp.menu_mrp_root"
               sequence="15"/>
-              
-    <menuitem id="menu_quality_primary_alerts" 
-              name="Quality Alerts" 
-              parent="menu_quality_root" 
-              action="action_mrp_quality_alert_primary" 
+
+    <menuitem id="menu_quality_primary_alerts"
+              name="Quality Alerts"
+              parent="menu_quality_root"
+              action="action_mrp_quality_alert_primary"
               sequence="1"/>
+
+    <menuitem id="menu_quality_stages"
+              name="Alert Stages"
+              parent="menu_quality_root"
+              action="action_mrp_quality_alert_stage"
+              sequence="5"/>
+
+    <!-- Reporting Menu -->
+    <menuitem id="menu_mrp_smart_reporting"
+              name="Smart Reports"
+              parent="mrp.menu_mrp_reporting"
+              sequence="50"/>
+
+    <menuitem id="menu_mrp_downtime_report"
+              name="Downtime Analysis"
+              parent="menu_mrp_smart_reporting"
+              action="action_mrp_downtime_analysis"
+              sequence="1"/>
+
+    <menuitem id="menu_mrp_labour_cost_report"
+              name="Labour Cost Report"
+              parent="menu_mrp_smart_reporting"
+              action="action_mrp_employee_productivity"
+              sequence="2"/>
 
 </odoo>

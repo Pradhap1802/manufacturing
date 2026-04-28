@@ -36,6 +36,18 @@ class MrpShopFloorWizard(models.TransientModel):
     # Helper for dropdown domain restriction
     scrap_allowed_product_ids = fields.Many2many('product.product', string='Allowed Scrap Products')
 
+    # Downtime Tracking (captured when pausing)
+    downtime_reason = fields.Selection([
+        ('breakdown',   'Machine Breakdown'),
+        ('material',    'Material Shortage'),
+        ('quality',     'Quality Hold'),
+        ('maintenance', 'Planned Maintenance'),
+        ('operator',    'Operator Absent'),
+        ('changeover',  'Product Changeover'),
+        ('other',       'Other'),
+    ], string='Pause Reason')
+    downtime_notes = fields.Text('Notes', placeholder='Describe the issue briefly...')
+
     # Component Visibility (Keep as readonly list for operator reference)
     component_line_ids = fields.One2many('mrp.shop.floor.wizard.line', 'wizard_id', string='Materials List')
 
@@ -104,7 +116,19 @@ class MrpShopFloorWizard(models.TransientModel):
         self.ensure_one()
         self._handle_scrap()
         self.workorder_id.write({'qty_producing': self.qty_producing})
-        return self.workorder_id.button_pending()
+        res = self.workorder_id.button_pending()
+        # Write downtime reason to the most recent productivity (time log) record
+        if self.downtime_reason:
+            last_timer = self.env['mrp.workcenter.productivity'].search([
+                ('workorder_id', '=', self.workorder_id.id),
+                ('date_end', '!=', False)
+            ], order='date_end desc', limit=1)
+            if last_timer:
+                last_timer.write({
+                    'downtime_reason': self.downtime_reason,
+                    'downtime_notes': self.downtime_notes,
+                })
+        return res
 
     def action_finish(self):
         self.ensure_one()

@@ -7,9 +7,7 @@ class IrHttp(models.AbstractModel):
 
     def session_info(self):
         result = super(IrHttp, self).session_info()
-        # If the user is identified as being in the "Shop Floor" PWA context via cookie
-        if request and request.httprequest.cookies.get('is_shop_floor') == '1':
-            action = self.env.ref('manufacturing.action_mrp_shop_floor_login', raise_if_not_found=False)
-            if action:
-                result['home_action_id'] = action.id
+        # The Shop Floor login wizard should only open when explicitly accessed via the menu.
+        # We removed the home_action_id override here to prevent the wizard from automatically 
+        # appearing every time the user updates the addon or loads the Odoo backend.
         return result
