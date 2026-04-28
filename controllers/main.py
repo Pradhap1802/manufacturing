@@ -33,8 +33,14 @@ class ShopFloorController(http.Controller):
     @http.route('/shop-floor/app', type='http', auth='user')
     def shop_floor_app(self, **kwargs):
         """Dedicated start_url for the PWA that identifies the device and redirects."""
-        # Set a persistent cookie to identify this browser as a Shop Floor terminal.
-        # This will be picked up by our IrHttp.session_info override to set the home action.
-        response = request.redirect("/odoo")
+        # Find the Shop Floor Login action
+        action = request.env.ref('manufacturing.action_mrp_shop_floor_login', raise_if_not_found=False)
+        if action:
+            url = f"/odoo/action-{action.id}"
+        else:
+            url = "/odoo"
+            
+        response = request.redirect(url)
+        # Set a persistent cookie to identify this browser as a Shop Floor terminal (useful for other custom logic if needed)
         response.set_cookie('is_shop_floor', '1', max_age=30*24*60*60) # 30 days
         return response
