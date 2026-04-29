@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mrp_subcontracting_receive_wizard_form" model="ir.ui.view">
+        <field name="name">mrp.subcontracting.receive.wizard.form</field>
+        <field name="model">mrp.subcontracting.receive.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Receive from Subcontractor">
+                <group>
+                    <field name="workorder_id" invisible="1"/>
+                    <field name="currency_id" invisible="1"/>
+                    <field name="qty_received"/>
+                    <field name="rejected_qty"/>
+                    <field name="cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                </group>
+                <footer>
+                    <button name="action_receive" type="object" string="Confirm Receipt" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

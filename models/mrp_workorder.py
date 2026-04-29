@@ -6,6 +6,176 @@ class MrpWorkorder(models.Model):
     _inherit = 'mrp.workorder'
 
     employee_id = fields.Many2one('hr.employee', string='Employee', copy=False)
+    
+    # Subcontracting Fields
+    is_subcontracted = fields.Boolean(related='operation_id.is_subcontracted', store=True, readonly=True)
+    vendor_id = fields.Many2one('res.partner', related='operation_id.vendor_id', store=True, readonly=True)
+    subcontract_service_id = fields.Many2one('product.product', related='operation_id.subcontract_service_id', store=True, readonly=True)
+    purchase_order_id = fields.Many2one('purchase.order', string='Subcontracting PO', copy=False, readonly=True)
+    purchase_line_id = fields.Many2one('purchase.order.line', string='PO Line', copy=False, readonly=True)
+    
+    delivery_picking_id = fields.Many2one('stock.picking', string='Send to Subcontractor', copy=False, readonly=True)
+    receipt_picking_id = fields.Many2one('stock.picking', string='Receive from Subcontractor', copy=False, readonly=True)
+
+    # Operations Tracking Fields
+    operation_type = fields.Selection([
+        ('inhouse', 'In-house'),
+        ('subcontract', 'Subcontract')
+    ], string='Operation Type', compute='_compute_operation_type', store=True)
+    
+    qty_sent = fields.Float('Qty Sent', compute='_compute_subcontract_qtys', store=True)
+    qty_received = fields.Float('Qty Received', compute='_compute_subcontract_qtys', store=True)
+    rejected_qty = fields.Float('Rejected Qty')
+    remarks = fields.Char('Remarks')
+    
+    tracking_status = fields.Selection([
+        ('pending', 'Pending'),
+        ('ready', 'Ready'),
+        ('progress', 'In Progress'),
+        ('sent', 'Sent to Vendor'),
+        ('received', 'Received'),
+        ('done', 'Done'),
+        ('cancel', 'Cancelled')
+    ], string='Status', compute='_compute_tracking_status', store=True)
+
+    company_currency_id = fields.Many2one('res.currency', related='company_id.currency_id')
+    operation_cost = fields.Monetary('Cost', compute='_compute_operation_cost', store=True, readonly=False, currency_field='company_currency_id')
+
+    @api.depends('is_subcontracted')
+    def _compute_operation_type(self):
+        for wo in self:
+            wo.operation_type = 'subcontract' if wo.is_subcontracted else 'inhouse'
+
+    @api.depends('delivery_picking_id.state', 'receipt_picking_id.state', 'delivery_picking_id.move_ids', 'receipt_picking_id.move_ids')
+    def _compute_subcontract_qtys(self):
+        for wo in self:
+            qty_sent = 0.0
+            qty_rec = 0.0
+            if wo.delivery_picking_id and wo.delivery_picking_id.state == 'done':
+                for move in wo.delivery_picking_id.move_ids:
+                    qty_sent += move.quantity
+            if wo.receipt_picking_id and wo.receipt_picking_id.state == 'done':
+                for move in wo.receipt_picking_id.move_ids:
+                    qty_rec += move.quantity
+            wo.qty_sent = qty_sent
+            wo.qty_received = qty_rec
+
+    @api.depends('state', 'is_subcontracted', 'delivery_picking_id.state', 'receipt_picking_id.state')
+    def _compute_tracking_status(self):
+        for wo in self:
+            if wo.state == 'cancel':
+                wo.tracking_status = 'cancel'
+            elif wo.state == 'done':
+                wo.tracking_status = 'done'
+            elif wo.state == 'pending':
+                wo.tracking_status = 'pending'
+            elif wo.state == 'ready':
+                wo.tracking_status = 'ready'
+            elif wo.state == 'progress':
+                if wo.is_subcontracted:
+                    if wo.receipt_picking_id and wo.receipt_picking_id.state == 'done':
+                        wo.tracking_status = 'received'
+                    elif wo.delivery_picking_id and wo.delivery_picking_id.state == 'done':
+                        wo.tracking_status = 'sent'
+                    else:
+                        wo.tracking_status = 'progress'
+                else:
+                    wo.tracking_status = 'progress'
+            else:
+                wo.tracking_status = 'pending'
+
+    @api.depends('is_subcontracted', 'purchase_line_id.price_subtotal', 'time_ids.total_cost')
+    def _compute_operation_cost(self):
+        for wo in self:
+            if wo.is_subcontracted and wo.purchase_line_id:
+                wo.operation_cost = wo.purchase_line_id.price_subtotal
+            else:
+                wo.operation_cost = sum(wo.time_ids.mapped('total_cost'))
+
+    def action_open_purchase_order(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'purchase.order',
+            'view_mode': 'form',
+            'res_id': self.purchase_order_id.id,
+            'target': 'current',
+        }
+
+    def action_open_delivery_picking(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': self.delivery_picking_id.id,
+            'target': 'current',
+        }
+
+    def action_open_receipt_picking(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': self.receipt_picking_id.id,
+            'target': 'current',
+        }
+
+    def action_send_to_vendor(self):
+        self.ensure_one()
+        if self.delivery_picking_id:
+            raise UserError(_("Delivery to vendor already created!"))
+            
+        warehouse = self.production_id.picking_type_id.warehouse_id
+        delivery_type = warehouse.out_type_id
+        vendor_location = self.vendor_id.property_stock_supplier
+
+        if not delivery_type or not vendor_location:
+            raise UserError(_("Warehouse delivery type or Vendor location is not configured properly."))
+
+        picking = self.env['stock.picking'].create({
+            'partner_id': self.vendor_id.id,
+            'picking_type_id': delivery_type.id,
+            'location_id': self.production_id.location_src_id.id,
+            'location_dest_id': vendor_location.id,
+            'origin': f"{self.production_id.name} - {self.name} (Send)",
+            'company_id': self.company_id.id,
+        })
+        move = self.env['stock.move'].create({
+            'name': self.production_id.product_id.name,
+            'product_id': self.production_id.product_id.id,
+            'product_uom_qty': self.qty_production,
+            'product_uom': self.production_id.product_uom_id.id,
+            'picking_id': picking.id,
+            'location_id': self.production_id.location_src_id.id,
+            'location_dest_id': vendor_location.id,
+        })
+        picking.action_confirm()
+        # Auto-validate the sending process to mark it as sent
+        move.quantity = self.qty_production
+        picking.button_validate()
+        
+        self.delivery_picking_id = picking.id
+        self.tracking_status = 'sent'
+
+    def action_receive_from_vendor(self):
+        self.ensure_one()
+        if not self.delivery_picking_id or self.delivery_picking_id.state != 'done':
+            raise UserError(_("You must send the items to the vendor before receiving them."))
+            
+        return {
+            'name': _('Receive from Subcontractor'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.subcontracting.receive.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_workorder_id': self.id,
+                'default_qty_received': self.qty_production,
+                'default_cost': self.purchase_line_id.price_subtotal if self.purchase_line_id else 0.0,
+            }
+        }
 
     def action_open_shop_floor_wizard(self):
         self.ensure_one()
@@ -88,8 +258,12 @@ class MrpWorkorder(models.Model):
         return total
 
     def button_start(self):
-
         self.ensure_one()
+
+        # Enforce Sequential Logic
+        if self.state == 'pending':
+            raise UserError(_("Sequential Logic Enforced: You cannot start this operation until the previous operation is completed."))
+
         # If no employee is set, we use the authenticated employee from context or logged-in user's employee
         if not self.employee_id:
             auth_emp_id = self.env.context.get('authenticated_employee_id')

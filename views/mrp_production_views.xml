@@ -24,6 +24,13 @@
                     </div>
                 </button>
             </div>
+            <xpath expr="//div[@name='button_box']" position="after">
+                <widget name="web_ribbon" title="Done" bg_color="bg-success" invisible="state != 'done'"/>
+                <div class="float-end d-flex align-items-center">
+                    <span class="me-2 fw-bold">Progress:</span>
+                    <field name="mo_progress_percent" widget="progressbar" class="oe_inline"/>
+                </div>
+            </xpath>
             <xpath expr="//label[@for='product_qty']" position="before">
                 <label for="secondary_qty" groups="manufacturing.group_manufacturing_multi_uom" invisible="not secondary_uom_id"/>
                 <div class="o_row" groups="manufacturing.group_manufacturing_multi_uom" invisible="not secondary_uom_id">
@@ -32,10 +39,15 @@
                 </div>
             </xpath>
             <xpath expr="//notebook" position="inside">
-                <page string="Labour Cost" name="labour_cost">
+                <page string="Cost Analysis" name="cost_analysis" groups="mrp.group_mrp_manager,purchase.group_purchase_user">
                     <group>
-                        <field name="company_currency_id" invisible="1"/>
-                        <field name="employee_cost_total" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                        <group string="Operations Cost Breakdown">
+                            <field name="company_currency_id" invisible="1"/>
+                            <field name="employee_cost_total" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                            <field name="subcontract_cost_total" widget="monetary" options="{'currency_field': 'company_currency_id'}"/>
+                            <hr/>
+                            <field name="total_operation_cost" widget="monetary" options="{'currency_field': 'company_currency_id'}" style="font-weight: bold; font-size: 1.2em;"/>
+                        </group>
                     </group>
                 </page>
             </xpath>
@@ -49,7 +61,10 @@
         <field name="arch" type="xml">
             <list position="inside">
                 <field name="company_currency_id" column_invisible="1"/>
-                <field name="employee_cost_total" sum="Total Labour Cost" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show"/>
+                <field name="employee_cost_total" sum="Total Labour Cost" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show" groups="mrp.group_mrp_manager,purchase.group_purchase_user"/>
+                <field name="subcontract_cost_total" sum="Total Subcontract Cost" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="show" groups="mrp.group_mrp_manager,purchase.group_purchase_user"/>
+                <field name="total_operation_cost" sum="Total Operations Cost" widget="monetary" options="{'currency_field': 'company_currency_id'}" optional="hide" groups="mrp.group_mrp_manager,purchase.group_purchase_user"/>
+                <field name="mo_progress_percent" widget="progressbar" optional="show"/>
             </list>
         </field>
     </record>

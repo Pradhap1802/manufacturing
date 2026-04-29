@@ -9,3 +9,7 @@ from . import res_config_settings
 from . import product_template
 from . import ir_http
 from . import maintenance_request
+from . import mrp_routing_workcenter
+from . import purchase_order
+from . import stock_picking
+

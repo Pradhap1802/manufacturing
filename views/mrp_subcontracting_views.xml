@@ -1,0 +1,122 @@
+<odoo>
+    <!-- mrp.routing.workcenter inherited view -->
+    <record id="mrp_routing_workcenter_form_view_inherit_subcontracting" model="ir.ui.view">
+        <field name="name">mrp.routing.workcenter.form.view.inherit.subcontracting</field>
+        <field name="model">mrp.routing.workcenter</field>
+        <field name="inherit_id" ref="mrp.mrp_routing_workcenter_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='description']" position="inside">
+                <field name="is_subcontracted" widget="boolean_toggle"/>
+                <field name="vendor_id" invisible="not is_subcontracted" required="is_subcontracted"/>
+                <field name="subcontract_service_id" invisible="not is_subcontracted" required="is_subcontracted"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- mrp.workorder inherited view -->
+    <record id="mrp_production_workorder_form_view_inherit_subcontracting" model="ir.ui.view">
+        <field name="name">mrp.production.workorder.form.view.inherit.subcontracting</field>
+        <field name="model">mrp.workorder</field>
+        <field name="inherit_id" ref="mrp.mrp_production_workorder_form_view_inherit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_purchase_order" type="object" class="oe_stat_button" icon="fa-credit-card" invisible="not purchase_order_id" groups="purchase.group_purchase_user,mrp.group_mrp_manager">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Purchase Order</span>
+                    </div>
+                </button>
+                <button name="action_open_delivery_picking" type="object" class="oe_stat_button" icon="fa-truck" invisible="not delivery_picking_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Send to Vendor</span>
+                    </div>
+                </button>
+                <button name="action_open_receipt_picking" type="object" class="oe_stat_button" icon="fa-download" invisible="not receipt_picking_id">
+                    <div class="o_field_widget o_stat_info">
+                        <span class="o_stat_text">Receive Back</span>
+                    </div>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Subcontracting" name="subcontracting" invisible="not is_subcontracted">
+                    <group>
+                        <group>
+                            <field name="is_subcontracted" invisible="1"/>
+                            <field name="vendor_id"/>
+                            <field name="subcontract_service_id"/>
+                        </group>
+                        <group>
+                            <field name="purchase_order_id"/>
+                            <field name="delivery_picking_id"/>
+                            <field name="receipt_picking_id"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- mrp.production inherited view -->
+    <record id="mrp_production_form_view_inherit_subcontracting" model="ir.ui.view">
+        <field name="name">mrp.production.form.view.inherit.subcontracting</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_subcontract_pos" type="object" class="oe_stat_button" icon="fa-credit-card" invisible="subcontract_po_count == 0" groups="purchase.group_purchase_user,mrp.group_mrp_manager">
+                    <field name="subcontract_po_count" widget="statinfo" string="Subcontract POs"/>
+                </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Operations Tracking" name="operations_tracking">
+                    <field name="workorder_ids" mode="list" readonly="0">
+                        <list string="Operations Tracking" create="false" delete="false" editable="bottom"
+                              decoration-success="tracking_status == 'done'" 
+                              decoration-info="tracking_status in ('ready', 'progress', 'sent', 'received')" 
+                              decoration-muted="tracking_status == 'cancel'">
+                            
+                            <!-- Display read-only operational context -->
+                            <field name="name" string="Operation Name" readonly="1"/>
+                            <field name="operation_type" readonly="1"/>
+                            <field name="vendor_id" readonly="1" invisible="operation_type != 'subcontract'"/>
+                            <field name="date_start" string="Planned Date" widget="date" readonly="1"/>
+                            <field name="date_finished" string="Actual Date" widget="date" readonly="1"/>
+                            
+                            <!-- Subcontracting Quantities -->
+                            <field name="qty_sent" readonly="1" invisible="operation_type != 'subcontract'"/>
+                            <field name="qty_received" readonly="1" invisible="operation_type != 'subcontract'"/>
+                            
+                            <!-- Editable Tracking Fields -->
+                            <field name="rejected_qty"/>
+                            <field name="operation_cost" string="Cost" readonly="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" groups="mrp.group_mrp_manager,purchase.group_purchase_user"/>
+                            <field name="remarks"/>
+                            <field name="company_currency_id" column_invisible="1"/>
+                            
+                            <!-- Status -->
+                            <field name="tracking_status" widget="badge" readonly="1"
+                                   decoration-success="tracking_status == 'done'" 
+                                   decoration-warning="tracking_status == 'progress'" 
+                                   decoration-info="tracking_status in ('sent', 'received', 'ready')"/>
+                            
+                            <!-- Vendor Buttons -->
+                            <button name="action_send_to_vendor" type="object" string="Send to Vendor" class="btn-primary" invisible="operation_type != 'subcontract' or tracking_status in ('sent', 'received', 'done', 'cancel')"/>
+                            <button name="action_receive_from_vendor" type="object" string="Receive" class="btn-secondary" invisible="operation_type != 'subcontract' or tracking_status != 'sent'"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- purchase.order inherited view -->
+    <record id="purchase_order_form_inherit_subcontracting" model="ir.ui.view">
+        <field name="name">purchase.order.form.inherit.subcontracting</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="mrp_production_id" invisible="not mrp_production_id"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
