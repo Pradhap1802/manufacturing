@@ -30,7 +30,6 @@ class MrpSubcontractingReceiveWizard(models.TransientModel):
             'company_id': wo.company_id.id,
         })
         move = self.env['stock.move'].create({
-            'name': wo.production_id.product_id.name,
             'product_id': wo.production_id.product_id.id,
             'product_uom_qty': self.qty_received,
             'product_uom': wo.production_id.product_uom_id.id,

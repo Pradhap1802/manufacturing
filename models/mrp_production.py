@@ -166,7 +166,7 @@ class MrpProduction(models.Model):
                         'product_qty': wo.qty_production,
                         'product_uom': wo.subcontract_service_id.uom_id.id,
                         'price_unit': wo.subcontract_service_id.standard_price,
-                        'date_planned': wo.date_planned_start or fields.Datetime.now(),
+                        'date_planned': wo.date_start or fields.Datetime.now(),
                     })
                     
                     wo.write({

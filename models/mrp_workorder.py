@@ -143,7 +143,6 @@ class MrpWorkorder(models.Model):
             'company_id': self.company_id.id,
         })
         move = self.env['stock.move'].create({
-            'name': self.production_id.product_id.name,
             'product_id': self.production_id.product_id.id,
             'product_uom_qty': self.qty_production,
             'product_uom': self.production_id.product_uom_id.id,
