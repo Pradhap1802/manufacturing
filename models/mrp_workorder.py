@@ -60,7 +60,7 @@ class MrpWorkorder(models.Model):
             wo.qty_sent = qty_sent
             wo.qty_received = qty_rec
 
-    @api.depends('state', 'is_subcontracted', 'delivery_picking_id.state', 'receipt_picking_id.state')
+    @api.depends('state', 'is_subcontracted', 'delivery_picking_id', 'delivery_picking_id.state', 'receipt_picking_id', 'receipt_picking_id.state')
     def _compute_tracking_status(self):
         for wo in self:
             if wo.state == 'cancel':
@@ -73,9 +73,11 @@ class MrpWorkorder(models.Model):
                 wo.tracking_status = 'ready'
             elif wo.state == 'progress':
                 if wo.is_subcontracted:
-                    if wo.receipt_picking_id and wo.receipt_picking_id.state == 'done':
+                    if wo.receipt_picking_id:
+                        # Receipt created (being validated or done)
                         wo.tracking_status = 'received'
-                    elif wo.delivery_picking_id and wo.delivery_picking_id.state == 'done':
+                    elif wo.delivery_picking_id:
+                        # Delivery created (being sent or already sent)
                         wo.tracking_status = 'sent'
                     else:
                         wo.tracking_status = 'progress'
@@ -123,57 +125,156 @@ class MrpWorkorder(models.Model):
         }
 
     def action_send_to_vendor(self):
+        """Create a delivery picking with the BOM raw material components to send to the subcontractor.
+        The picking is confirmed but left open so the user validates it from Inventory > Transfers.
+        Qty Sent and tracking status update automatically once the picking is validated."""
         self.ensure_one()
         if self.delivery_picking_id:
-            raise UserError(_("Delivery to vendor already created!"))
-            
+            # If already created, open it so the user can validate
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'stock.picking',
+                'view_mode': 'form',
+                'res_id': self.delivery_picking_id.id,
+                'target': 'current',
+            }
+
         warehouse = self.production_id.picking_type_id.warehouse_id
         delivery_type = warehouse.out_type_id
         vendor_location = self.vendor_id.property_stock_supplier
 
-        if not delivery_type or not vendor_location:
-            raise UserError(_("Warehouse delivery type or Vendor location is not configured properly."))
+        if not delivery_type:
+            raise UserError(_("Warehouse delivery operation type is not configured."))
+        if not vendor_location:
+            raise UserError(_("Vendor '%s' does not have a supplier location configured.") % self.vendor_id.name)
 
+        # Gather BOM raw material components from the production order's raw moves
+        raw_moves = self.production_id.move_raw_ids.filtered(
+            lambda m: m.state not in ('done', 'cancel')
+        )
+        if not raw_moves:
+            raise UserError(_(
+                "No raw material components found on this Manufacturing Order. "
+                "Make sure the Bill of Materials has components and the MO is confirmed."
+            ))
+
+        # Create the outgoing delivery picking to the subcontractor
         picking = self.env['stock.picking'].create({
             'partner_id': self.vendor_id.id,
             'picking_type_id': delivery_type.id,
             'location_id': self.production_id.location_src_id.id,
             'location_dest_id': vendor_location.id,
-            'origin': f"{self.production_id.name} - {self.name} (Send)",
+            'origin': f"{self.production_id.name} - {self.name} (Subcontract Send)",
             'company_id': self.company_id.id,
+            'note': _('Raw materials for subcontracted operation: %s') % self.name,
         })
-        move = self.env['stock.move'].create({
-            'product_id': self.production_id.product_id.id,
-            'product_uom_qty': self.qty_production,
-            'product_uom': self.production_id.product_uom_id.id,
-            'picking_id': picking.id,
-            'location_id': self.production_id.location_src_id.id,
-            'location_dest_id': vendor_location.id,
-        })
-        picking.action_confirm()
-        # Auto-validate the sending process to mark it as sent
-        move.quantity = self.qty_production
-        picking.button_validate()
-        
+
+        # Create one stock.move per raw material component
+        for raw_move in raw_moves:
+            self.env['stock.move'].create({
+                'description_picking': raw_move.product_id.display_name,
+                'product_id': raw_move.product_id.id,
+                'product_uom_qty': raw_move.product_uom_qty,
+                'product_uom': raw_move.product_uom.id,
+                'picking_id': picking.id,
+                'location_id': self.production_id.location_src_id.id,
+                'location_dest_id': vendor_location.id,
+                'origin': picking.origin,
+                'company_id': self.company_id.id,
+            })
+
         self.delivery_picking_id = picking.id
-        self.tracking_status = 'sent'
+
+        # Open the delivery picking in DRAFT so the user can review/edit
+        # components and quantities before confirming and validating
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': picking.id,
+            'target': 'current',
+            'name': _('Send to Subcontractor'),
+        }
 
     def action_receive_from_vendor(self):
+        """Create a draft receipt picking (vendor → production floor) mirroring the
+        delivery components, then open it directly in Inventory for the user to validate.
+        When validated, _action_done in stock_picking.py auto-marks this work order as done."""
         self.ensure_one()
-        if not self.delivery_picking_id or self.delivery_picking_id.state != 'done':
-            raise UserError(_("You must send the items to the vendor before receiving them."))
-            
-        return {
-            'name': _('Receive from Subcontractor'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'mrp.subcontracting.receive.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_workorder_id': self.id,
-                'default_qty_received': self.qty_production,
-                'default_cost': self.purchase_line_id.price_subtotal if self.purchase_line_id else 0.0,
+
+        if not self.delivery_picking_id:
+            raise UserError(_("Please send the raw materials to the vendor first."))
+        if self.delivery_picking_id.state != 'done':
+            raise UserError(_(
+                "The delivery to the subcontractor (ref: %s) has not been validated yet. "
+                "Please validate it from Inventory > Transfers first."
+            ) % self.delivery_picking_id.name)
+
+        # If receipt already created, open it directly
+        if self.receipt_picking_id:
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'stock.picking',
+                'view_mode': 'form',
+                'res_id': self.receipt_picking_id.id,
+                'target': 'current',
+                'name': _('Receive from Subcontractor'),
             }
+
+        production = self.production_id
+        warehouse = production.picking_type_id.warehouse_id
+        receipt_type = warehouse.in_type_id
+        vendor_location = self.vendor_id.property_stock_supplier
+        dest_location = production.location_src_id  # back to production floor
+
+        # Gather validated moves from the delivery picking
+        delivery_moves = self.delivery_picking_id.move_ids.filtered(
+            lambda m: m.state == 'done'
+        )
+        if not delivery_moves:
+            raise UserError(_(
+                "No validated delivery moves found. "
+                "Please validate the delivery picking from Inventory > Transfers first."
+            ))
+
+        # Create the inbound receipt picking in DRAFT
+        # The subcontractor returns the FINISHED PRODUCT (e.g. NPK 20:20:20),
+        # not the raw materials that were sent (e.g. Urea, DAP, MOP)
+        picking = self.env['stock.picking'].create({
+            'partner_id': self.vendor_id.id,
+            'picking_type_id': receipt_type.id,
+            'location_id': vendor_location.id,
+            'location_dest_id': dest_location.id,
+            'origin': f"{production.name} - {self.name} (Subcontract Return)",
+            'company_id': self.company_id.id,
+            'note': _("Finished product received from subcontractor for: %s") % self.name,
+        })
+
+        # Single move for the finished product (vendor → production floor)
+        self.env['stock.move'].create({
+            'description_picking': production.product_id.display_name,
+            'product_id': production.product_id.id,
+            'product_uom_qty': production.product_qty,
+            'product_uom': production.product_uom_id.id,
+            'picking_id': picking.id,
+            'location_id': vendor_location.id,
+            'location_dest_id': dest_location.id,
+            'origin': picking.origin,
+            'company_id': self.company_id.id,
+        })
+
+        # Link receipt to work order (triggers tracking_status → 'received' via compute)
+        self.receipt_picking_id = picking.id
+
+        # Open the draft receipt in Inventory — user reviews qty and validates
+        # On validation, stock_picking._action_done() auto-calls button_finish() on this WO
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'stock.picking',
+            'view_mode': 'form',
+            'res_id': picking.id,
+            'target': 'current',
+            'name': _('Receive from Subcontractor'),
         }
 
     def action_open_shop_floor_wizard(self):
