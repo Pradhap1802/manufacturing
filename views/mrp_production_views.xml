@@ -66,6 +66,7 @@
     <record id="mrp_production_cost_analysis_form_view" model="ir.ui.view">
         <field name="name">mrp.production.cost.analysis.form</field>
         <field name="model">mrp.production</field>
+        <field name="priority">999</field>
         <field name="arch" type="xml">
             <form string="Cost Analysis">
                 <group string="Operations Cost Breakdown">

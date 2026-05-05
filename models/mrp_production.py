@@ -174,6 +174,18 @@ class MrpProduction(models.Model):
                         'purchase_line_id': po_line.id,
                     })
                     
+    def action_view_custom_cost_analysis(self):
+        self.ensure_one()
+        return {
+            'name': _('Cost Analysis'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.production',
+            'view_mode': 'form',
+            'res_id': self.id,
+            'views': [(self.env.ref('manufacturing.mrp_production_cost_analysis_form_view').id, 'form')],
+            'target': 'new',
+        }
+
     def action_view_subcontract_pos(self):
         self.ensure_one()
         return {
