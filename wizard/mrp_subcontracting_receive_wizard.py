@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
 
 class MrpSubcontractingReceiveWizard(models.TransientModel):
     _name = 'mrp.subcontracting.receive.wizard'
@@ -8,73 +7,56 @@ class MrpSubcontractingReceiveWizard(models.TransientModel):
 
     workorder_id = fields.Many2one('mrp.workorder', required=True)
     qty_received = fields.Float('Qty Received', required=True)
+    product_id = fields.Many2one('product.product', string='Product', related='workorder_id.production_id.product_id', readonly=True)
+    finished_qty = fields.Float('Finished Product Qty', related='workorder_id.production_id.product_qty', readonly=True)
+    mo_end_date = fields.Date('MO End Date', compute='_compute_dates', readonly=True)
+    delivery_date = fields.Date('Delivery Date', compute='_compute_dates', readonly=True)
+
+    @api.depends('workorder_id.production_id.date_finished', 'workorder_id.delivery_picking_id.date_done')
+    def _compute_dates(self):
+        for wizard in self:
+            wizard.mo_end_date = wizard.workorder_id.production_id.date_finished.date() if wizard.workorder_id.production_id.date_finished else False
+            wizard.delivery_date = wizard.workorder_id.delivery_picking_id.date_done.date() if wizard.workorder_id.delivery_picking_id.date_done else False
     rejected_qty = fields.Float('Rejected Qty', default=0.0)
     cost = fields.Monetary('Cost', currency_field='currency_id')
     currency_id = fields.Many2one('res.currency', related='workorder_id.company_currency_id')
 
     def action_receive(self):
         wo = self.workorder_id
-        production = wo.production_id
-
-        if wo.receipt_picking_id:
-            raise UserError(_(
-                "A receipt transfer (ref: %s) already exists for this operation."
-            ) % wo.receipt_picking_id.name)
-
         wo.rejected_qty = self.rejected_qty
         wo.operation_cost = self.cost
-
-        # Build receipt: vendor supplier location → production source location
-        warehouse = production.picking_type_id.warehouse_id
+        
+        # Create and validate receipt picking
+        warehouse = wo.production_id.picking_type_id.warehouse_id
         receipt_type = warehouse.in_type_id
         vendor_location = wo.vendor_id.property_stock_supplier
-        dest_location = production.location_src_id  # back to the production floor
-
-        # Gather components from the outgoing delivery picking
-        delivery_moves = wo.delivery_picking_id.move_ids.filtered(
-            lambda m: m.state == 'done'
-        )
-        if not delivery_moves:
-            raise UserError(_(
-                "No validated delivery moves found on the send-to-vendor transfer. "
-                "Please validate the delivery picking from Inventory > Transfers first."
-            ))
-
-        # Create the inbound receipt picking (vendor → production floor)
+        
         picking = self.env['stock.picking'].create({
             'partner_id': wo.vendor_id.id,
             'picking_type_id': receipt_type.id,
             'location_id': vendor_location.id,
-            'location_dest_id': dest_location.id,
-            'origin': f"{production.name} - {wo.name} (Subcontract Return)",
+            'location_dest_id': wo.production_id.location_dest_id.id,
+            'origin': f"{wo.production_id.name} - {wo.name} (Return)",
             'company_id': wo.company_id.id,
-            'note': _('Processed components returned by subcontractor for operation: %s') % wo.name,
         })
-
-        # Mirror each component from the delivery
-        for dmove in delivery_moves:
-            self.env['stock.move'].create({
-                'description_picking': dmove.product_id.display_name,
-                'product_id': dmove.product_id.id,
-                'product_uom_qty': dmove.quantity,
-                'product_uom': dmove.product_uom.id,
-                'picking_id': picking.id,
-                'location_id': vendor_location.id,
-                'location_dest_id': dest_location.id,
-                'origin': picking.origin,
-                'company_id': wo.company_id.id,
-            })
-
+        move = self.env['stock.move'].create({
+            'product_id': wo.production_id.product_id.id,
+            'product_uom_qty': self.qty_received,
+            'product_uom': wo.production_id.product_uom_id.id,
+            'picking_id': picking.id,
+            'location_id': vendor_location.id,
+            'location_dest_id': wo.production_id.location_dest_id.id,
+        })
         picking.action_confirm()
+        move.quantity = self.qty_received
+        picking.button_validate()
+        
         wo.receipt_picking_id = picking.id
+        
+        # We start and finish the workorder to mark the operation as completed
+        if wo.state == 'ready':
+            wo.button_start()
+        if wo.state == 'progress':
+            wo.button_finish()
+        
         wo.tracking_status = 'received'
-
-        # Open the receipt picking for the user to review quantities and validate
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'stock.picking',
-            'view_mode': 'form',
-            'res_id': picking.id,
-            'target': 'current',
-            'name': _('Receive from Subcontractor'),
-        }

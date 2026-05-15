@@ -8,9 +8,17 @@
                 <group>
                     <field name="workorder_id" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
-                    <field name="qty_received"/>
-                    <field name="rejected_qty"/>
-                    <field name="cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                    <group>
+                        <field name="product_id"/>
+                        <field name="finished_qty"/>
+                        <field name="qty_received"/>
+                        <field name="rejected_qty"/>
+                    </group>
+                    <group>
+                        <field name="mo_end_date"/>
+                        <field name="delivery_date"/>
+                        <field name="cost" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                    </group>
                 </group>
                 <footer>
                     <button name="action_receive" type="object" string="Confirm Receipt" class="btn-primary"/>

@@ -8,7 +8,6 @@
             <xpath expr="//group[@name='description']" position="inside">
                 <field name="is_subcontracted" widget="boolean_toggle"/>
                 <field name="vendor_id" invisible="not is_subcontracted" required="is_subcontracted"/>
-                <field name="subcontract_service_id" invisible="not is_subcontracted" required="is_subcontracted"/>
             </xpath>
         </field>
     </record>
@@ -20,11 +19,6 @@
         <field name="inherit_id" ref="mrp.mrp_production_workorder_form_view_inherit"/>
         <field name="arch" type="xml">
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_open_purchase_order" type="object" class="oe_stat_button" icon="fa-credit-card" invisible="not purchase_order_id" groups="purchase.group_purchase_user,mrp.group_mrp_manager">
-                    <div class="o_field_widget o_stat_info">
-                        <span class="o_stat_text">Purchase Order</span>
-                    </div>
-                </button>
                 <button name="action_open_delivery_picking" type="object" class="oe_stat_button" icon="fa-truck" invisible="not delivery_picking_id">
                     <div class="o_field_widget o_stat_info">
                         <span class="o_stat_text">Send to Vendor</span>
@@ -42,10 +36,8 @@
                         <group>
                             <field name="is_subcontracted" invisible="1"/>
                             <field name="vendor_id"/>
-                            <field name="subcontract_service_id"/>
                         </group>
                         <group>
-                            <field name="purchase_order_id"/>
                             <field name="delivery_picking_id"/>
                             <field name="receipt_picking_id"/>
                         </group>
@@ -62,132 +54,34 @@
         <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
         <field name="arch" type="xml">
             <xpath expr="//div[@name='button_box']" position="inside">
-                <button name="action_view_subcontract_pos" type="object" class="oe_stat_button" icon="fa-credit-card" invisible="subcontract_po_count == 0" groups="purchase.group_purchase_user,mrp.group_mrp_manager">
-                    <field name="subcontract_po_count" widget="statinfo" string="Subcontract POs"/>
+                <button name="action_view_subcontract_pickings" type="object" class="oe_stat_button" icon="fa-truck" invisible="subcontract_picking_count == 0">
+                    <field name="subcontract_picking_count" widget="statinfo" string="Subcontract"/>
                 </button>
             </xpath>
-            <xpath expr="//notebook" position="inside">
-                <page string="Operations Tracking" name="operations_tracking">
-                    <field name="workorder_ids" mode="list" readonly="0">
-                        <list string="Operations Tracking" create="false" delete="false" editable="bottom"
-                              decoration-success="tracking_status == 'done'" 
-                              decoration-info="tracking_status in ('ready', 'progress', 'sent', 'received')" 
-                              decoration-muted="tracking_status == 'cancel'">
-                            
-                            <!-- Display read-only operational context -->
-                            <field name="name" string="Operation Name" readonly="1"/>
-                            <field name="operation_type" readonly="1"/>
-                            <field name="vendor_id" readonly="1" invisible="operation_type != 'subcontract'"/>
-                            <field name="date_start" string="Planned Date" widget="date" readonly="1"/>
-                            <field name="date_finished" string="Actual Date" widget="date" readonly="1"/>
-                            
-                            <!-- Subcontracting Quantities -->
-                            <field name="qty_sent" readonly="1" invisible="operation_type != 'subcontract'"/>
-                            <field name="qty_received" readonly="1" invisible="operation_type != 'subcontract'"/>
-                            
-                            <!-- Editable Tracking Fields -->
-                            <field name="rejected_qty"/>
-                            <field name="operation_cost" string="Cost" readonly="1" widget="monetary" options="{'currency_field': 'company_currency_id'}" groups="mrp.group_mrp_manager,purchase.group_purchase_user"/>
-                            <field name="remarks"/>
-                            <field name="company_currency_id" column_invisible="1"/>
-                            
-                            <!-- Status -->
-                            <field name="tracking_status" widget="badge" readonly="1"
-                                   decoration-success="tracking_status == 'done'" 
-                                   decoration-warning="tracking_status == 'progress'" 
-                                   decoration-info="tracking_status in ('sent', 'received', 'ready')"/>
-
-                            <!-- Hidden fields for button visibility -->
-                            <field name="delivery_picking_id" column_invisible="1"/>
-                            <field name="receipt_picking_id" column_invisible="1"/>
-
-                            <!-- Vendor Action Buttons -->
-                            <!-- Send: only show if no delivery created yet -->
-                            <button name="action_send_to_vendor" type="object"
-                                    string="Send to Vendor" class="btn-primary"
-                                    invisible="operation_type != 'subcontract' or delivery_picking_id != False"/>
-                            <!-- View Delivery: show if delivery exists but receipt not yet created -->
-                            <button name="action_open_delivery_picking" type="object"
-                                    string="View Delivery" class="btn-info"
-                                    invisible="operation_type != 'subcontract' or delivery_picking_id == False or receipt_picking_id != False"/>
-                            <!-- Receive: show if delivery exists and no receipt yet -->
-                            <button name="action_receive_from_vendor" type="object"
-                                    string="Receive" class="btn-secondary"
-                                    invisible="operation_type != 'subcontract' or delivery_picking_id == False or receipt_picking_id != False"/>
-                            <!-- View Receipt: show if receipt already created -->
-                            <button name="action_open_receipt_picking" type="object"
-                                    string="View Receipt" class="btn-success"
-                                    invisible="operation_type != 'subcontract' or receipt_picking_id == False"/>
-                        </list>
-                    </field>
-                </page>
-            </xpath>
         </field>
     </record>
 
-    <!-- purchase.order inherited view -->
-    <record id="purchase_order_form_inherit_subcontracting" model="ir.ui.view">
-        <field name="name">purchase.order.form.inherit.subcontracting</field>
-        <field name="model">purchase.order</field>
-        <field name="inherit_id" ref="purchase.purchase_order_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//field[@name='origin']" position="after">
-                <field name="mrp_production_id" invisible="not mrp_production_id"/>
-            </xpath>
-        </field>
-    </record>
-
-
-    <!-- Work Orders tab on MO form — add subcontracting tracking columns -->
-    <record id="mrp_workorder_tree_mo_form_inherit_subcontracting" model="ir.ui.view">
-        <field name="name">mrp.workorder.tree.mo.form.inherit.subcontracting</field>
+    <!-- mrp.workorder list view inherited for MO form -->
+    <record id="mrp_production_workorder_tree_editable_view_mo_form_inherit_subcontracting" model="ir.ui.view">
+        <field name="name">mrp.production.work.order.list.editable.inherit.subcontracting</field>
         <field name="model">mrp.workorder</field>
         <field name="inherit_id" ref="mrp.mrp_production_workorder_tree_editable_view_mo_form"/>
         <field name="arch" type="xml">
-            <!-- Append subcontracting columns after the state badge -->
-            <xpath expr="//field[@name='state']" position="after">
-                <!-- Hidden fields for column visibility logic -->
+            <xpath expr="//list" position="inside">
                 <field name="operation_type" column_invisible="1"/>
                 <field name="delivery_picking_id" column_invisible="1"/>
-                <field name="receipt_picking_id" column_invisible="1"/>
-                <field name="company_currency_id" column_invisible="1"/>
-
-                <!-- Subcontracting: visible columns (only shown for subcontract rows) -->
-                <field name="vendor_id" readonly="1" optional="show"
-                       column_invisible="False"
-                       invisible="operation_type != 'subcontract'"/>
-                <field name="qty_sent" readonly="1" optional="show"
-                       column_invisible="False"
-                       invisible="operation_type != 'subcontract'"/>
-                <field name="qty_received" readonly="1" optional="show"
-                       column_invisible="False"
-                       invisible="operation_type != 'subcontract'"/>
-                <field name="tracking_status" widget="badge" readonly="1"
-                       optional="show"
-                       column_invisible="False"
+                <field name="tracking_status" widget="badge" optional="show"
                        invisible="operation_type != 'subcontract'"
-                       decoration-success="tracking_status == 'done'"
-                       decoration-warning="tracking_status == 'progress'"
+                       decoration-success="tracking_status == 'done'" 
+                       decoration-warning="tracking_status == 'progress'" 
                        decoration-info="tracking_status in ('sent', 'received', 'ready')"/>
-
-                <!-- Send to Vendor: only if no delivery created yet -->
-                <button name="action_send_to_vendor" type="object"
-                        string="Send to Vendor" class="btn-primary btn-sm"
-                        invisible="operation_type != 'subcontract' or delivery_picking_id != False"/>
-                <!-- View Delivery: delivery exists, no receipt yet -->
-                <button name="action_open_delivery_picking" type="object"
-                        string="View Delivery" class="btn-info btn-sm"
-                        invisible="operation_type != 'subcontract' or delivery_picking_id == False or receipt_picking_id != False"/>
-                <!-- Receive: delivery exists, receipt not yet created -->
-                <button name="action_receive_from_vendor" type="object"
-                        string="Receive" class="btn-secondary btn-sm"
-                        invisible="operation_type != 'subcontract' or delivery_picking_id == False or receipt_picking_id != False"/>
-                <!-- View Receipt: receipt already created -->
-                <button name="action_open_receipt_picking" type="object"
-                        string="View Receipt" class="btn-success btn-sm"
-                        invisible="operation_type != 'subcontract' or receipt_picking_id == False"/>
+                <button name="action_send_to_vendor" type="object" string="Send" class="btn-primary" 
+                        invisible="operation_type != 'subcontract' or delivery_picking_id"/>
+                <button name="action_receive_from_vendor" type="object" string="Receive" class="btn-secondary" 
+                        invisible="operation_type != 'subcontract' or tracking_status != 'sent'"/>
             </xpath>
         </field>
     </record>
+
 
 </odoo>

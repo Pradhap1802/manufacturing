@@ -30,13 +30,12 @@ class MrpProduction(models.Model):
     )
     mo_progress_percent = fields.Float(string='Progress %', compute='_compute_mo_progress', store=True)
 
-    # Subcontracting Fields
-    purchase_order_ids = fields.One2many('purchase.order', 'mrp_production_id', string='Subcontracting POs')
-    subcontract_po_count = fields.Integer(compute='_compute_subcontract_po_count')
+    subcontract_picking_count = fields.Integer(compute='_compute_subcontract_picking_count')
 
-    def _compute_subcontract_po_count(self):
+    def _compute_subcontract_picking_count(self):
         for production in self:
-            production.subcontract_po_count = len(production.purchase_order_ids)
+            pickings = production.workorder_ids.mapped('delivery_picking_id') | production.workorder_ids.mapped('receipt_picking_id')
+            production.subcontract_picking_count = len(pickings)
 
     @api.depends('workorder_ids.time_ids.total_cost')
     def _compute_employee_cost_total(self):
@@ -120,60 +119,6 @@ class MrpProduction(models.Model):
                 raise UserError(_("Manufacturing Completion Rule Enforced: You cannot mark the Manufacturing Order as Done until all operations (including subcontracted ones) are completed."))
         return super(MrpProduction, self).button_mark_done()
 
-    def _plan_workorders(self, replan=False):
-        res = super(MrpProduction, self)._plan_workorders(replan=replan)
-        self._generate_subcontracting_pos()
-        return res
-        
-    def _generate_subcontracting_pos(self):
-        """ Automatically generate Purchase Orders and Pickings for subcontracted work orders. """
-        PurchaseOrder = self.env['purchase.order']
-        PurchaseOrderLine = self.env['purchase.order.line']
-        StockPicking = self.env['stock.picking']
-        StockMove = self.env['stock.move']
-
-        for production in self:
-            warehouse = production.picking_type_id.warehouse_id
-            if not warehouse:
-                warehouse = self.env['stock.warehouse'].search([('company_id', '=', production.company_id.id)], limit=1)
-                
-            delivery_type = warehouse.out_type_id
-            receipt_type = warehouse.in_type_id
-            
-            sub_workorders = production.workorder_ids.filtered(lambda wo: wo.is_subcontracted and not wo.purchase_order_id)
-            if not sub_workorders:
-                continue
-                
-            # Group by Vendor
-            wo_by_vendor = {}
-            for wo in sub_workorders:
-                if wo.vendor_id:
-                    wo_by_vendor.setdefault(wo.vendor_id, []).append(wo)
-                    
-            for vendor, workorders in wo_by_vendor.items():
-                po = PurchaseOrder.create({
-                    'partner_id': vendor.id,
-                    'mrp_production_id': production.id,
-                    'origin': production.name,
-                })
-                for wo in workorders:
-                    if not wo.subcontract_service_id:
-                        continue
-                    po_line = PurchaseOrderLine.create({
-                        'order_id': po.id,
-                        'product_id': wo.subcontract_service_id.id,
-                        'name': f"Subcontracted Operation: {wo.name} ({production.name})",
-                        'product_qty': wo.qty_production,
-                        'product_uom': wo.subcontract_service_id.uom_id.id,
-                        'price_unit': wo.subcontract_service_id.standard_price,
-                        'date_planned': wo.date_start or fields.Datetime.now(),
-                    })
-                    
-                    wo.write({
-                        'purchase_order_id': po.id,
-                        'purchase_line_id': po_line.id,
-                    })
-                    
     def action_view_custom_cost_analysis(self):
         self.ensure_one()
         return {
@@ -182,17 +127,14 @@ class MrpProduction(models.Model):
             'res_model': 'mrp.production',
             'view_mode': 'form',
             'res_id': self.id,
-            'views': [(self.env.ref('manufacturing.mrp_production_cost_analysis_form_view').id, 'form')],
+            'view_id': self.env.ref('manufacturing.mrp_production_cost_analysis_form_view').id,
             'target': 'new',
         }
 
-    def action_view_subcontract_pos(self):
+    def action_view_subcontract_pickings(self):
         self.ensure_one()
-        return {
-            'name': _('Subcontracting POs'),
-            'type': 'ir.actions.act_window',
-            'res_model': 'purchase.order',
-            'view_mode': 'list,form',
-            'domain': [('mrp_production_id', '=', self.id)],
-            'context': {'default_mrp_production_id': self.id},
-        }
+        pickings = self.workorder_ids.mapped('delivery_picking_id') | self.workorder_ids.mapped('receipt_picking_id')
+        action = self.env.ref('stock.action_picking_tree_all').read()[0]
+        action['domain'] = [('id', 'in', pickings.ids)]
+        action['context'] = {'create': False}
+        return action

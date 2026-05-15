@@ -84,7 +84,7 @@
                                         <field name="qty_production"/>
                                     </span>
                                     <span class="text-muted" invisible="qty_remaining == 0">
-                                        <i class="fa fa-hourglass-half me-1"/>
+                                        <i class="fa fa-hourglass-half me-1" title="Remaining"/>
                                         Rem: <field name="qty_remaining"/>
                                     </span>
                                 </div>

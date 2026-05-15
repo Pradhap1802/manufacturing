@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
+from odoo.tools import float_compare, float_is_zero
 
 class MrpWorkorder(models.Model):
     _inherit = 'mrp.workorder'
@@ -10,10 +11,6 @@ class MrpWorkorder(models.Model):
     # Subcontracting Fields
     is_subcontracted = fields.Boolean(related='operation_id.is_subcontracted', store=True, readonly=True)
     vendor_id = fields.Many2one('res.partner', related='operation_id.vendor_id', store=True, readonly=True)
-    subcontract_service_id = fields.Many2one('product.product', related='operation_id.subcontract_service_id', store=True, readonly=True)
-    purchase_order_id = fields.Many2one('purchase.order', string='Subcontracting PO', copy=False, readonly=True)
-    purchase_line_id = fields.Many2one('purchase.order.line', string='PO Line', copy=False, readonly=True)
-    
     delivery_picking_id = fields.Many2one('stock.picking', string='Send to Subcontractor', copy=False, readonly=True)
     receipt_picking_id = fields.Many2one('stock.picking', string='Receive from Subcontractor', copy=False, readonly=True)
 
@@ -41,6 +38,17 @@ class MrpWorkorder(models.Model):
     company_currency_id = fields.Many2one('res.currency', related='company_id.currency_id')
     operation_cost = fields.Monetary('Cost', compute='_compute_operation_cost', store=True, readonly=False, currency_field='company_currency_id')
 
+    is_first_started_wo = fields.Boolean('Is First Started WO', compute='_compute_is_last_unfinished_wo')
+    is_last_unfinished_wo = fields.Boolean('Is Last Unfinished WO', compute='_compute_is_last_unfinished_wo')
+
+    @api.depends('production_id.workorder_ids')
+    def _compute_is_last_unfinished_wo(self):
+        for wo in self:
+            wo.is_first_started_wo = all(w.state != 'done' for w in (wo.production_id.workorder_ids - wo))
+            other_wos = wo.production_id.workorder_ids - wo
+            other_states = other_wos.mapped(lambda w: w.state in ['done', 'cancel'])
+            wo.is_last_unfinished_wo = all(other_states)
+
     @api.depends('is_subcontracted')
     def _compute_operation_type(self):
         for wo in self:
@@ -60,49 +68,45 @@ class MrpWorkorder(models.Model):
             wo.qty_sent = qty_sent
             wo.qty_received = qty_rec
 
-    @api.depends('state', 'is_subcontracted', 'delivery_picking_id', 'delivery_picking_id.state', 'receipt_picking_id', 'receipt_picking_id.state')
+    @api.depends('state', 'is_subcontracted', 'delivery_picking_id.state', 'receipt_picking_id.state')
     def _compute_tracking_status(self):
         for wo in self:
             if wo.state == 'cancel':
                 wo.tracking_status = 'cancel'
-            elif wo.state == 'done':
+                continue
+            if wo.state == 'done':
                 wo.tracking_status = 'done'
-            elif wo.state == 'pending':
-                wo.tracking_status = 'pending'
-            elif wo.state == 'ready':
-                wo.tracking_status = 'ready'
-            elif wo.state == 'progress':
-                if wo.is_subcontracted:
-                    if wo.receipt_picking_id:
-                        # Receipt created (being validated or done)
-                        wo.tracking_status = 'received'
-                    elif wo.delivery_picking_id:
-                        # Delivery created (being sent or already sent)
-                        wo.tracking_status = 'sent'
-                    else:
-                        wo.tracking_status = 'progress'
-                else:
+                continue
+            
+            if wo.is_subcontracted:
+                if wo.receipt_picking_id and wo.receipt_picking_id.state == 'done':
+                    wo.tracking_status = 'received'
+                elif wo.delivery_picking_id and wo.delivery_picking_id.state == 'done':
+                    wo.tracking_status = 'sent'
+                elif wo.delivery_picking_id:
+                    wo.tracking_status = 'ready' # Waiting for delivery validation
+                elif wo.state == 'progress':
                     wo.tracking_status = 'progress'
+                elif wo.state == 'ready':
+                    wo.tracking_status = 'ready'
+                elif wo.state == 'pending':
+                    wo.tracking_status = 'pending'
+                else:
+                    wo.tracking_status = 'pending'
             else:
-                wo.tracking_status = 'pending'
+                if wo.state == 'progress':
+                    wo.tracking_status = 'progress'
+                elif wo.state == 'ready':
+                    wo.tracking_status = 'ready'
+                elif wo.state == 'pending':
+                    wo.tracking_status = 'pending'
+                else:
+                    wo.tracking_status = 'pending'
 
-    @api.depends('is_subcontracted', 'purchase_line_id.price_subtotal', 'time_ids.total_cost')
+    @api.depends('time_ids.total_cost')
     def _compute_operation_cost(self):
         for wo in self:
-            if wo.is_subcontracted and wo.purchase_line_id:
-                wo.operation_cost = wo.purchase_line_id.price_subtotal
-            else:
-                wo.operation_cost = sum(wo.time_ids.mapped('total_cost'))
-
-    def action_open_purchase_order(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'purchase.order',
-            'view_mode': 'form',
-            'res_id': self.purchase_order_id.id,
-            'target': 'current',
-        }
+            wo.operation_cost = sum(wo.time_ids.mapped('total_cost'))
 
     def action_open_delivery_picking(self):
         self.ensure_one()
@@ -125,52 +129,26 @@ class MrpWorkorder(models.Model):
         }
 
     def action_send_to_vendor(self):
-        """Create a delivery picking with the BOM raw material components to send to the subcontractor.
-        The picking is confirmed but left open so the user validates it from Inventory > Transfers.
-        Qty Sent and tracking status update automatically once the picking is validated."""
         self.ensure_one()
         if self.delivery_picking_id:
-            # If already created, open it so the user can validate
-            return {
-                'type': 'ir.actions.act_window',
-                'res_model': 'stock.picking',
-                'view_mode': 'form',
-                'res_id': self.delivery_picking_id.id,
-                'target': 'current',
-            }
-
+            raise UserError(_("Delivery to vendor already created!"))
+            
         warehouse = self.production_id.picking_type_id.warehouse_id
         delivery_type = warehouse.out_type_id
         vendor_location = self.vendor_id.property_stock_supplier
 
-        if not delivery_type:
-            raise UserError(_("Warehouse delivery operation type is not configured."))
-        if not vendor_location:
-            raise UserError(_("Vendor '%s' does not have a supplier location configured.") % self.vendor_id.name)
+        if not delivery_type or not vendor_location:
+            raise UserError(_("Warehouse delivery type or Vendor location is not configured properly."))
 
-        # Gather BOM raw material components from the production order's raw moves
-        raw_moves = self.production_id.move_raw_ids.filtered(
-            lambda m: m.state not in ('done', 'cancel')
-        )
-        if not raw_moves:
-            raise UserError(_(
-                "No raw material components found on this Manufacturing Order. "
-                "Make sure the Bill of Materials has components and the MO is confirmed."
-            ))
-
-        # Create the outgoing delivery picking to the subcontractor
         picking = self.env['stock.picking'].create({
             'partner_id': self.vendor_id.id,
             'picking_type_id': delivery_type.id,
             'location_id': self.production_id.location_src_id.id,
             'location_dest_id': vendor_location.id,
-            'origin': f"{self.production_id.name} - {self.name} (Subcontract Send)",
+            'origin': f"{self.production_id.name} - {self.name} (Send)",
             'company_id': self.company_id.id,
-            'note': _('Raw materials for subcontracted operation: %s') % self.name,
         })
-
-        # Create one stock.move per raw material component
-        for raw_move in raw_moves:
+        for raw_move in self.production_id.move_raw_ids:
             self.env['stock.move'].create({
                 'description_picking': raw_move.product_id.display_name,
                 'product_id': raw_move.product_id.id,
@@ -179,102 +157,28 @@ class MrpWorkorder(models.Model):
                 'picking_id': picking.id,
                 'location_id': self.production_id.location_src_id.id,
                 'location_dest_id': vendor_location.id,
-                'origin': picking.origin,
-                'company_id': self.company_id.id,
             })
-
+        picking.action_confirm()
+        picking.action_assign()
+        
         self.delivery_picking_id = picking.id
 
-        # Open the delivery picking in DRAFT so the user can review/edit
-        # components and quantities before confirming and validating
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'stock.picking',
-            'view_mode': 'form',
-            'res_id': picking.id,
-            'target': 'current',
-            'name': _('Send to Subcontractor'),
-        }
-
     def action_receive_from_vendor(self):
-        """Create a draft receipt picking (vendor → production floor) mirroring the
-        delivery components, then open it directly in Inventory for the user to validate.
-        When validated, _action_done in stock_picking.py auto-marks this work order as done."""
         self.ensure_one()
-
-        if not self.delivery_picking_id:
-            raise UserError(_("Please send the raw materials to the vendor first."))
-        if self.delivery_picking_id.state != 'done':
-            raise UserError(_(
-                "The delivery to the subcontractor (ref: %s) has not been validated yet. "
-                "Please validate it from Inventory > Transfers first."
-            ) % self.delivery_picking_id.name)
-
-        # If receipt already created, open it directly
-        if self.receipt_picking_id:
-            return {
-                'type': 'ir.actions.act_window',
-                'res_model': 'stock.picking',
-                'view_mode': 'form',
-                'res_id': self.receipt_picking_id.id,
-                'target': 'current',
-                'name': _('Receive from Subcontractor'),
-            }
-
-        production = self.production_id
-        warehouse = production.picking_type_id.warehouse_id
-        receipt_type = warehouse.in_type_id
-        vendor_location = self.vendor_id.property_stock_supplier
-        dest_location = production.location_src_id  # back to production floor
-
-        # Gather validated moves from the delivery picking
-        delivery_moves = self.delivery_picking_id.move_ids.filtered(
-            lambda m: m.state == 'done'
-        )
-        if not delivery_moves:
-            raise UserError(_(
-                "No validated delivery moves found. "
-                "Please validate the delivery picking from Inventory > Transfers first."
-            ))
-
-        # Create the inbound receipt picking in DRAFT
-        # The subcontractor returns the FINISHED PRODUCT (e.g. NPK 20:20:20),
-        # not the raw materials that were sent (e.g. Urea, DAP, MOP)
-        picking = self.env['stock.picking'].create({
-            'partner_id': self.vendor_id.id,
-            'picking_type_id': receipt_type.id,
-            'location_id': vendor_location.id,
-            'location_dest_id': dest_location.id,
-            'origin': f"{production.name} - {self.name} (Subcontract Return)",
-            'company_id': self.company_id.id,
-            'note': _("Finished product received from subcontractor for: %s") % self.name,
-        })
-
-        # Single move for the finished product (vendor → production floor)
-        self.env['stock.move'].create({
-            'description_picking': production.product_id.display_name,
-            'product_id': production.product_id.id,
-            'product_uom_qty': production.product_qty,
-            'product_uom': production.product_uom_id.id,
-            'picking_id': picking.id,
-            'location_id': vendor_location.id,
-            'location_dest_id': dest_location.id,
-            'origin': picking.origin,
-            'company_id': self.company_id.id,
-        })
-
-        # Link receipt to work order (triggers tracking_status → 'received' via compute)
-        self.receipt_picking_id = picking.id
-
-        # Open the draft receipt in Inventory — user reviews qty and validates
-        # On validation, stock_picking._action_done() auto-calls button_finish() on this WO
+        if not self.delivery_picking_id or self.delivery_picking_id.state != 'done':
+            raise UserError(_("You must send the items to the vendor before receiving them."))
+            
         return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'stock.picking',
-            'view_mode': 'form',
-            'res_id': picking.id,
-            'target': 'current',
             'name': _('Receive from Subcontractor'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.subcontracting.receive.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_workorder_id': self.id,
+                'default_qty_received': self.qty_production,
+                'default_cost': 0.0,
+            }
         }
 
     def action_open_shop_floor_wizard(self):
@@ -398,6 +302,59 @@ class MrpWorkorder(models.Model):
         res = super(MrpWorkorder, self).button_finish()
         # Optionally clear employee or keep for history
         return res
+
+    def pre_record_production(self):
+        self.ensure_one()
+        self.production_id._check_company()
+        if float_compare(self.qty_producing, 0, precision_rounding=self.product_uom_id.rounding) <= 0:
+            raise UserError(_('Please set the quantity you are currently producing. It should be different from zero.'))
+
+    def record_production(self):
+        if not self:
+            return True
+
+        self.pre_record_production()
+
+        backorder = False
+        # Trigger the backorder process if we produce less than expected
+        if float_compare(self.qty_producing, self.qty_remaining, precision_rounding=self.product_uom_id.rounding) == -1 and self.is_first_started_wo:
+            if self.production_id.picking_type_id.create_backorder == 'ask':
+                return self.production_id.with_context(workorder_id_to_finish=self.id)._action_generate_backorder_wizard(self.production_id)
+            elif self.production_id.picking_type_id.create_backorder == 'always':
+                backorder = self.production_id._split_productions({self.production_id: [self.qty_producing, self.qty_remaining - self.qty_producing]})[1:]
+                for workorder in backorder.workorder_ids:
+                    if not self.env.context.get('no_start_next', False):
+                        workorder.qty_producing = workorder.qty_remaining
+                self.production_id.product_qty = self.qty_producing
+
+        else:
+            if self.operation_id:
+                backorder = (self.production_id.production_group_id.production_ids - self.production_id).filtered(
+                    lambda p: p.workorder_ids.filtered(lambda wo: wo.operation_id == self.operation_id).state not in ('cancel', 'done')
+                )[:1]
+            else:
+                index = list(self.production_id.workorder_ids).index(self)
+                backorder = (self.production_id.production_group_id.production_ids - self.production_id).filtered(
+                    lambda p: index < len(p.workorder_ids) and p.workorder_ids[index].state not in ('cancel', 'done')
+                )[:1]
+
+        return self.post_record_production(backorder)
+
+    def post_record_production(self, backorders=False):
+        self.button_finish()
+        return True
+
+    def do_finish(self):
+        self.end_all()
+        if self.state != 'done':
+            loss_id = self.env['mrp.workcenter.productivity.loss'].search([('loss_type', '=', 'productive')], limit=1)
+            if len(loss_id) < 1:
+                raise UserError(_("You need to define at least one productivity loss in the category 'Productive'. Create one from the Manufacturing app, menu: Configuration / Productivity Losses."))
+            action = self.record_production()
+            # In community, time tracking is handled dynamically, but we'll ensure we close if needed
+            if action is not True:
+                return action
+        return True
 
     def action_shop_floor_maintenance(self):
         self.ensure_one()

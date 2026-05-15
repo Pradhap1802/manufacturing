@@ -134,7 +134,9 @@ class MrpShopFloorWizard(models.TransientModel):
         self.ensure_one()
         self._handle_scrap()
         self.workorder_id.write({'qty_producing': self.qty_producing})
-        res = self.workorder_id.button_finish()
+        res = self.workorder_id.do_finish()
+        if isinstance(res, dict):
+            return res
         mo = self.production_id
         if all(wo.state in ('done', 'cancel') for wo in mo.workorder_ids):
             mo_res = mo.button_mark_done()
