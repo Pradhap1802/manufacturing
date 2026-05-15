@@ -9,14 +9,15 @@ class MrpSubcontractingReceiveWizard(models.TransientModel):
     qty_received = fields.Float('Qty Received', required=True)
     product_id = fields.Many2one('product.product', string='Product', related='workorder_id.production_id.product_id', readonly=True)
     finished_qty = fields.Float('Finished Product Qty', related='workorder_id.production_id.product_qty', readonly=True)
-    mo_end_date = fields.Date('MO End Date', compute='_compute_dates', readonly=True)
-    delivery_date = fields.Date('Delivery Date', compute='_compute_dates', readonly=True)
+    mo_end_date = fields.Date('MO End Date', compute='_compute_dates', readonly=False)
+    delivery_date = fields.Date('Delivery Date', compute='_compute_dates', readonly=False)
 
-    @api.depends('workorder_id.production_id.date_finished', 'workorder_id.delivery_picking_id.date_done')
+    @api.depends('workorder_id.production_id.date_finished', 'workorder_id.delivery_picking_id.date_done', 'workorder_id.subcontract_receipt_date')
     def _compute_dates(self):
         for wizard in self:
             wizard.mo_end_date = wizard.workorder_id.production_id.date_finished.date() if wizard.workorder_id.production_id.date_finished else False
-            wizard.delivery_date = wizard.workorder_id.delivery_picking_id.date_done.date() if wizard.workorder_id.delivery_picking_id.date_done else False
+            # Use the saved date from the delivery wizard if available
+            wizard.delivery_date = wizard.workorder_id.subcontract_receipt_date or (wizard.workorder_id.delivery_picking_id.date_done.date() if wizard.workorder_id.delivery_picking_id.date_done else False)
     rejected_qty = fields.Float('Rejected Qty', default=0.0)
     cost = fields.Monetary('Cost', currency_field='currency_id')
     currency_id = fields.Many2one('res.currency', related='workorder_id.company_currency_id')

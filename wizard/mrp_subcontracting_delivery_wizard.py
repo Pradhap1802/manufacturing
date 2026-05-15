@@ -86,7 +86,10 @@ class MrpSubcontractingDeliveryWizard(models.TransientModel):
             
         picking.button_validate()
         
-        wo.delivery_picking_id = picking.id
+        wo.write({
+            'delivery_picking_id': picking.id,
+            'subcontract_receipt_date': self.receipt_date,
+        })
         return {'type': 'ir.actions.act_window_close'}
 
 class MrpSubcontractingDeliveryWizardLine(models.TransientModel):

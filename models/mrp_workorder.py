@@ -13,6 +13,7 @@ class MrpWorkorder(models.Model):
     vendor_id = fields.Many2one('res.partner', related='operation_id.vendor_id', store=True, readonly=True)
     delivery_picking_id = fields.Many2one('stock.picking', string='Send to Subcontractor', copy=False, readonly=True)
     receipt_picking_id = fields.Many2one('stock.picking', string='Receive from Subcontractor', copy=False, readonly=True)
+    subcontract_receipt_date = fields.Date('Subcontract Receipt Date', copy=False)
 
     # Operations Tracking Fields
     operation_type = fields.Selection([
@@ -103,10 +104,16 @@ class MrpWorkorder(models.Model):
                 else:
                     wo.tracking_status = 'pending'
 
-    @api.depends('time_ids.total_cost')
+    @api.depends('time_ids.total_cost', 'is_subcontracted')
     def _compute_operation_cost(self):
         for wo in self:
-            wo.operation_cost = sum(wo.time_ids.mapped('total_cost'))
+            if not wo.is_subcontracted:
+                wo.operation_cost = sum(wo.time_ids.mapped('total_cost'))
+            else:
+                # For subcontracted operations, the cost is set via the receive wizard.
+                # We ensure we don't overwrite it with 0 here.
+                if not wo.operation_cost:
+                    wo.operation_cost = 0.0
 
     def action_open_delivery_picking(self):
         self.ensure_one()
