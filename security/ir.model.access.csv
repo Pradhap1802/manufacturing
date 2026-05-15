@@ -10,3 +10,5 @@ access_mrp_shop_floor_wizard_line,mrp.shop.floor.wizard.line,model_mrp_shop_floo
 access_mrp_workcenter_productivity_custom,mrp.workcenter.productivity.custom,model_mrp_workcenter_productivity,mrp.group_mrp_user,1,1,1,1
 access_mrp_quality_alert_stage,mrp.quality.alert.stage,model_mrp_quality_alert_stage,mrp.group_mrp_user,1,1,1,1
 access_mrp_subcontracting_receive_wizard,mrp.subcontracting.receive.wizard,model_mrp_subcontracting_receive_wizard,base.group_user,1,1,1,1
+access_mrp_subcontracting_delivery_wizard,mrp.subcontracting.delivery.wizard,model_mrp_subcontracting_delivery_wizard,base.group_user,1,1,1,1
+access_mrp_subcontracting_delivery_wizard_line,mrp.subcontracting.delivery.wizard.line,model_mrp_subcontracting_delivery_wizard_line,base.group_user,1,1,1,1

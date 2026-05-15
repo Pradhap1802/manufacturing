@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mrp_subcontracting_delivery_wizard_form" model="ir.ui.view">
+        <field name="name">mrp.subcontracting.delivery.wizard.form</field>
+        <field name="model">mrp.subcontracting.delivery.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Send components to Subcontractor">
+                <sheet>
+                    <group>
+                        <field name="workorder_id" invisible="1"/>
+                        <group>
+                            <field name="product_id"/>
+                            <field name="production_id"/>
+                            <field name="vendor_id"/>
+                        </group>
+                        <group>
+                            <field name="mo_start_date"/>
+                            <field name="receipt_date"/>
+                            <field name="delivery_date" invisible="not delivery_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Components" name="components">
+                            <field name="line_ids">
+                                <list editable="bottom" create="0">
+                                    <field name="product_id"/>
+                                    <field name="demand_qty"/>
+                                    <field name="qty_to_send"/>
+                                    <field name="uom_id" groups="uom.group_uom"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <footer>
+                    <button name="action_send" type="object" string="Send Components" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

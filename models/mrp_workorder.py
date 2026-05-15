@@ -133,35 +133,16 @@ class MrpWorkorder(models.Model):
         if self.delivery_picking_id:
             raise UserError(_("Delivery to vendor already created!"))
             
-        warehouse = self.production_id.picking_type_id.warehouse_id
-        delivery_type = warehouse.out_type_id
-        vendor_location = self.vendor_id.property_stock_supplier
-
-        if not delivery_type or not vendor_location:
-            raise UserError(_("Warehouse delivery type or Vendor location is not configured properly."))
-
-        picking = self.env['stock.picking'].create({
-            'partner_id': self.vendor_id.id,
-            'picking_type_id': delivery_type.id,
-            'location_id': self.production_id.location_src_id.id,
-            'location_dest_id': vendor_location.id,
-            'origin': f"{self.production_id.name} - {self.name} (Send)",
-            'company_id': self.company_id.id,
-        })
-        for raw_move in self.production_id.move_raw_ids:
-            self.env['stock.move'].create({
-                'description_picking': raw_move.product_id.display_name,
-                'product_id': raw_move.product_id.id,
-                'product_uom_qty': raw_move.product_uom_qty,
-                'product_uom': raw_move.product_uom.id,
-                'picking_id': picking.id,
-                'location_id': self.production_id.location_src_id.id,
-                'location_dest_id': vendor_location.id,
-            })
-        picking.action_confirm()
-        picking.action_assign()
-        
-        self.delivery_picking_id = picking.id
+        return {
+            'name': _('Send to Subcontractor'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.subcontracting.delivery.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_workorder_id': self.id,
+            }
+        }
 
     def action_receive_from_vendor(self):
         self.ensure_one()

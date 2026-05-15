@@ -11,6 +11,7 @@
         'wizard/mrp_create_bom_wizard_views.xml',
         'wizard/mrp_shop_floor_wizard_views.xml',
         'wizard/mrp_subcontracting_receive_wizard_views.xml',
+        'wizard/mrp_subcontracting_delivery_wizard_views.xml',
         'views/mrp_workcenter_views.xml',
         'views/mrp_shop_floor_views.xml',
         'views/mrp_quality_views.xml',
