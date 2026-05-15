@@ -4,8 +4,8 @@
     'summary': 'Custom manufacturing features for Odoo 19',
     'category': 'Manufacturing',
     'author': 'ProcessDrive',
-    'depends': ['mrp', 'purchase', 'stock', 'hr', 'maintenance', 'mail'],
-    'data': [
+    'depends': ['mrp', 'purchase', 'stock', 'hr', 'maintenance', 'mail', 'sale_management', 'contacts'],
+    'data': [  
         'security/manufacturing_groups.xml',
         'security/ir.model.access.csv',
         'wizard/mrp_create_bom_wizard_views.xml',

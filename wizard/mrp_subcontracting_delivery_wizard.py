@@ -26,10 +26,13 @@ class MrpSubcontractingDeliveryWizard(models.TransientModel):
     @api.model
     def default_get(self, fields_list):
         res = super().default_get(fields_list)
-        if 'line_ids' in fields_list and res.get('workorder_id'):
-            wo = self.env['mrp.workorder'].browse(res['workorder_id'])
+        workorder_id = res.get('workorder_id') or self.env.context.get('default_workorder_id')
+        if 'line_ids' in fields_list and workorder_id:
+            wo = self.env['mrp.workorder'].browse(workorder_id)
             lines = []
             for move in wo.production_id.move_raw_ids:
+                if move.product_uom_qty <= 0:
+                    continue
                 lines.append((0, 0, {
                     'product_id': move.product_id.id,
                     'demand_qty': move.product_uom_qty,
@@ -76,6 +79,13 @@ class MrpSubcontractingDeliveryWizard(models.TransientModel):
         picking.action_confirm()
         picking.action_assign()
         
+        # Validate the picking immediately to mark it as 'Done'
+        for move in picking.move_ids:
+            move.quantity = move.product_uom_qty
+            move.picked = True
+            
+        picking.button_validate()
+        
         wo.delivery_picking_id = picking.id
         return {'type': 'ir.actions.act_window_close'}
 
@@ -84,8 +94,8 @@ class MrpSubcontractingDeliveryWizardLine(models.TransientModel):
     _description = 'Subcontracting Delivery Line'
 
     wizard_id = fields.Many2one('mrp.subcontracting.delivery.wizard')
-    product_id = fields.Many2one('product.product', string='Product', readonly=True)
-    demand_qty = fields.Float('Demand', readonly=True)
+    product_id = fields.Many2one('product.product', string='Product')
+    demand_qty = fields.Float('Demand')
     qty_to_send = fields.Float('Actual Send')
     uom_id = fields.Many2one('uom.uom', string='UoM', readonly=True)
     move_id = fields.Many2one('stock.move', string='Source Move')

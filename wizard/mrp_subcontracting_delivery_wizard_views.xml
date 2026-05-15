@@ -23,10 +23,10 @@
                         <page string="Components" name="components">
                             <field name="line_ids">
                                 <list editable="bottom" create="0">
-                                    <field name="product_id"/>
-                                    <field name="demand_qty"/>
+                                    <field name="product_id" readonly="1" force_save="1"/>
+                                    <field name="demand_qty" readonly="1" force_save="1"/>
                                     <field name="qty_to_send"/>
-                                    <field name="uom_id" groups="uom.group_uom"/>
+                                    <field name="uom_id" groups="uom.group_uom" readonly="1" force_save="1"/>
                                 </list>
                             </field>
                         </page>
