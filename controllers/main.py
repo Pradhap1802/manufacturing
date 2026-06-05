@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import http
+# pyrefly: ignore [missing-import]
 from odoo.http import request
 from odoo.addons.web.controllers.webmanifest import WebManifest as WebWebManifest
 from urllib.parse import quote

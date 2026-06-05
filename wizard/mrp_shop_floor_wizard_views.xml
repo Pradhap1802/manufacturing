@@ -5,12 +5,9 @@
         <field name="model">mrp.shop.floor.wizard</field>
         <field name="arch" type="xml">
             <form string="Shop Floor Operations">
-                <header>
-                    <field name="state" widget="statusbar" statusbar_visible="ready,progress,pending,done"/>
-                </header>
+
                 <sheet>
                     <field name="wizard_mode" invisible="1"/>
-                    <field name="scrap_allowed_product_ids" invisible="1"/>
                     <div class="oe_title">
                         <h1><field name="workorder_id" readonly="1"/></h1>
                         <h3 class="text-muted"><field name="product_id" readonly="1"/></h3>
@@ -39,20 +36,6 @@
                         </group>
                     </group>
 
-                    <!-- Scrap section, restricted to Raw Materials only (Hidden in Resume mode) -->
-                    <group string="Raw Material Scrap Entry" invisible="wizard_mode == 'resume'">
-                        <group>
-                            <field name="scrap_product_id" 
-                                   string="Select Raw Material"
-                                   domain="[('id', 'in', scrap_allowed_product_ids)]"
-                                   placeholder="Search BOM Component..."
-                                   options="{'no_create': True, 'no_open': True}"/>
-                        </group>
-                        <group>
-                            <field name="scrap_qty" string="Quantity to Scrap"/>
-                            <field name="scrap_reason" invisible="scrap_qty == 0" placeholder="e.g. Scratched, broken..."/>
-                        </group>
-                    </group>
 
                     <!-- Downtime Reason — only shown in pause mode -->
                     <group string="Why are you pausing?" invisible="wizard_mode != 'pause'">

@@ -132,7 +132,7 @@
                                     <button class="btn btn-outline-secondary btn-sm dropdown-toggle o_shop_floor_manage_btn" 
                                             type="button" data-bs-toggle="dropdown" aria-expanded="false"
                                             title="Manage Operations">
-                                        <i class="fa fa-cogs me-1"/>Manage
+                                        <i class="fa fa-cogs me-1"/>
                                     </button>
                                     <ul class="dropdown-menu" role="menu">
                                         <li>

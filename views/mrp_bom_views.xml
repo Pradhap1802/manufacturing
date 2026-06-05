@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit mrp.bom form view -->
+    <record id="mrp_bom_form_view_inherit" model="ir.ui.view">
+        <field name="name">mrp.bom.form.inherit</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.mrp_bom_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_tmpl_id']" position="after">
+                <field name="categ_id" options="{'no_open': True, 'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit mrp.bom tree view -->
+    <record id="mrp_bom_tree_view_inherit" model="ir.ui.view">
+        <field name="name">mrp.bom.list.inherit</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.mrp_bom_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_tmpl_id']" position="after">
+                <field name="categ_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Inherit mrp.bom search view -->
+    <record id="view_mrp_bom_filter_inherit" model="ir.ui.view">
+        <field name="name">mrp.bom.select.inherit</field>
+        <field name="model">mrp.bom</field>
+        <field name="inherit_id" ref="mrp.view_mrp_bom_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_tmpl_id']" position="after">
+                <field name="categ_id"/>
+            </xpath>
+            <xpath expr="//filter[@name='product']" position="after">
+                <filter string="Product Category" name="group_by_categ_id" domain="[]" context="{'group_by': 'categ_id'}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

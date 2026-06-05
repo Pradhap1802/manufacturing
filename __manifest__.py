@@ -20,6 +20,7 @@
         'views/mrp_dashboard_reports.xml',
         'views/res_config_settings_views.xml',
         'views/product_template_views.xml',
+        'views/mrp_bom_views.xml',
         'views/hr_employee_views.xml',
     ],
     'assets': {
